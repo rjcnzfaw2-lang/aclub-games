@@ -597,7 +597,7 @@ function submitScore(){
       btn.textContent='✅ ВІДПРАВЛЕНО'; return;
     }catch(e){}
   }
-  const botUrl='https://t.me/AGameMasterbot?start=score_'+score;
+  const botUrl='https://t.me/AGameMasterbot?start=runner_'+score;
   window.open(botUrl,'_blank');
   status.textContent='📱 Відкрийте бота і відправте результат!';
   btn.textContent='📤 ВІДКРИТИ БОТА'; btn.disabled=false;
