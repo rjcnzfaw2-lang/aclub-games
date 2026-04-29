@@ -575,17 +575,37 @@ function endGame(){
   state='dead';
   if(score>bestScore) bestScore=score;
   
-  // Автоматично відправляємо результат без кнопки
-  if(window.Telegram && window.Telegram.WebApp){
-    try{
-      window.Telegram.WebApp.sendData(JSON.stringify({score, game:'runner'}));
+  // Отримуємо дані користувача з Telegram WebApp
+  const tg = window.Telegram && window.Telegram.WebApp;
+  
+  if(tg){
+    tg.ready();
+    // Спочатку пробуємо sendData (працює тільки якщо відкрито через web_app кнопку в боті)
+    try {
+      tg.sendData(JSON.stringify({score, game:'runner'}));
     } catch(e) {
-      // fallback
-      window.open('https://t.me/AGameMasterbot?start=runner_'+score,'_blank');
+      // Fallback: відправляємо через fetch на спеціальний endpoint
+      const userId = tg.initDataUnsafe?.user?.id;
+      const firstName = tg.initDataUnsafe?.user?.first_name || '';
+      const lastName = tg.initDataUnsafe?.user?.last_name || '';
+      const userName = (firstName + ' ' + lastName).trim() || 'Гравець';
+      
+      if(userId){
+        fetch('https://script.google.com/macros/s/AKfycbzpVAzDfxiu5plSRwBBPS3qLz6gZQDTYeEdMW3E4Kdd0VOjCcDAeWGPeUkAPM9d5xu-/exec', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({
+            type: 'game_result',
+            userId: userId,
+            userName: userName,
+            score: score,
+            game: 'runner'
+          })
+        }).catch(err => console.log('fetch error:', err));
+      }
     }
   }
   
-  // Показуємо Game Over без кнопки відправити
   document.getElementById('goScore').textContent = score + ' очок';
   document.getElementById('bestScore').textContent = bestScore;
   document.getElementById('gameOverOverlay').classList.remove('hidden');
