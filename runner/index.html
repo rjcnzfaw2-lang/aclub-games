@@ -590,21 +590,17 @@ function endGame(){
       const lastName = tg.initDataUnsafe?.user?.last_name || '';
       const userName = (firstName + ' ' + lastName).trim() || 'Гравець';
       
-      if(userId){
-        fetch('https://script.google.com/macros/s/AKfycbzpVAzDfxiu5plSRwBBPS3qLz6gZQDTYeEdMW3E4Kdd0VOjCcDAeWGPeUkAPM9d5xu-/exec', {
-          method: 'POST',
-          headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({
-            type: 'game_result',
-            userId: userId,
-            userName: userName,
-            score: score,
-            game: 'runner'
-          })
-        }).catch(err => console.log('fetch error:', err));
-      }
-    }
-  }
+      // Замість fetch використовуємо Image для обходу CORS
+const WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbzpVAzDfxiu5plSRwBBPS3qLz6gZQDTYeEdMW3E4Kdd0VOjCcDAeWGPeUkAPM9d5xu-/exec";
+
+if(userId){
+  const url = WEBHOOK_URL + 
+    "?type=game_result&game=runner" +
+    "&score=" + score +
+    "&userId=" + userId +
+    "&userName=" + encodeURIComponent(userName);
+  new Image().src = url; // fire-and-forget, no CORS issues
+}
   
   document.getElementById('goScore').textContent = score + ' очок';
   document.getElementById('bestScore').textContent = bestScore;
