@@ -576,11 +576,20 @@ function startGame(){
 function endGame(){
   state='dead';
   if(score>bestScore) bestScore=score;
-  document.getElementById('goScore').textContent=score+' очок';
-  document.getElementById('bestScore').textContent=bestScore;
-  const btn=document.getElementById('submitBtn');
-  btn.disabled=false; btn.textContent='📤 ВІДПРАВИТИ РЕЗУЛЬТАТ';
-  document.getElementById('submitStatus').textContent='';
+  
+  // Автоматично відправляємо результат без кнопки
+  if(window.Telegram && window.Telegram.WebApp){
+    try{
+      window.Telegram.WebApp.sendData(JSON.stringify({score, game:'runner'}));
+    } catch(e) {
+      // fallback
+      window.open('https://t.me/AGameMasterbot?start=runner_'+score,'_blank');
+    }
+  }
+  
+  // Показуємо Game Over без кнопки відправити
+  document.getElementById('goScore').textContent = score + ' очок';
+  document.getElementById('bestScore').textContent = bestScore;
   document.getElementById('gameOverOverlay').classList.remove('hidden');
   ctx.clearRect(0,0,W,H); drawBackground(); player.draw();
   ctx.fillStyle='rgba(0,0,0,.5)'; ctx.fillRect(0,0,W,H);
