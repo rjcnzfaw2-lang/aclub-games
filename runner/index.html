@@ -575,32 +575,29 @@ function endGame(){
   state='dead';
   if(score>bestScore) bestScore=score;
   
-  // Отримуємо дані користувача з Telegram WebApp
   const tg = window.Telegram && window.Telegram.WebApp;
   
   if(tg){
     tg.ready();
-    // Спочатку пробуємо sendData (працює тільки якщо відкрито через web_app кнопку в боті)
     try {
       tg.sendData(JSON.stringify({score, game:'runner'}));
     } catch(e) {
-      // Fallback: відправляємо через fetch на спеціальний endpoint
       const userId = tg.initDataUnsafe?.user?.id;
       const firstName = tg.initDataUnsafe?.user?.first_name || '';
       const lastName = tg.initDataUnsafe?.user?.last_name || '';
       const userName = (firstName + ' ' + lastName).trim() || 'Гравець';
       
-      // Замість fetch використовуємо Image для обходу CORS
-const WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbzpVAzDfxiu5plSRwBBPS3qLz6gZQDTYeEdMW3E4Kdd0VOjCcDAeWGPeUkAPM9d5xu-/exec";
-
-if(userId){
-  const url = WEBHOOK_URL + 
-    "?type=game_result&game=runner" +
-    "&score=" + score +
-    "&userId=" + userId +
-    "&userName=" + encodeURIComponent(userName);
-  new Image().src = url; // fire-and-forget, no CORS issues
-}
+      if(userId){
+        const WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbzpVAzDfxiu5plSRwBBPS3qLz6gZQDTYeEdMW3E4Kdd0VOjCcDAeWGPeUkAPM9d5xu-/exec";
+        const url = WEBHOOK_URL + 
+          "?type=game_result&game=runner" +
+          "&score=" + score +
+          "&userId=" + userId +
+          "&userName=" + encodeURIComponent(userName);
+        new Image().src = url;
+      }
+    }
+  }
   
   document.getElementById('goScore').textContent = score + ' очок';
   document.getElementById('bestScore').textContent = bestScore;
