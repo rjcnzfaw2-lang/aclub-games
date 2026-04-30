@@ -370,23 +370,22 @@ function endGame(){
   const userName  = (firstName + ' ' + lastName).trim() || 'Гравець';
 
 if(userId){
-  const url = WEBHOOK_URL +
-    "?type=game_result&game=runner" +
-    "&score=" + encodeURIComponent(score) +
-    "&userId=" + encodeURIComponent(userId) +
-    "&userName=" + encodeURIComponent(userName);
-  
-  // Показуємо URL на екрані для діагностики
-  const dbg = document.createElement('div');
-  dbg.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:red;color:white;font-size:10px;padding:4px;z-index:9999;word-break:break-all;';
-  dbg.textContent = 'URL: ' + url.substring(0, 100);
-  document.body.appendChild(dbg);
-  
-  fetch(url, {mode: 'no-cors'}).catch(err => {
-    dbg.textContent = 'ERROR: ' + err.toString();
-    dbg.style.background = 'orange';
-  });
+    const url = WEBHOOK_URL +
+      "?type=game_result&game=runner" +
+      "&score=" + encodeURIComponent(score) +
+      "&userId=" + encodeURIComponent(userId) +
+      "&userName=" + encodeURIComponent(userName);
+    fetch(url, {mode: 'no-cors'}).catch(()=>{});
+  }
 }
+
+// ── IDLE LOOP ─────────────────────────────────────────────
+function idleLoop(){
+  if(state!=='idle') return;
+  ctx.clearRect(0,0,W,H); drawBackground();
+  player.animTick++; if(player.animTick%20===0) player.animFrame=(player.animFrame+1)%4;
+  player.draw();
+  requestAnimationFrame(idleLoop);
 
 // ── INIT ──────────────────────────────────────────────────
 speed=3; bgOffset=0; state='idle';
