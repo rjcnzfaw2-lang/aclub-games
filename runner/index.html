@@ -375,7 +375,7 @@ function endGame(){
       "&score=" + encodeURIComponent(score) +
       "&userId=" + encodeURIComponent(userId) +
       "&userName=" + encodeURIComponent(userName);
-    new Image().src = url;
+    fetch(url, {mode: 'no-cors'}).catch(()=>{});
   }
 }
 
