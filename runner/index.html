@@ -332,15 +332,6 @@ function updateLivesHUD(){
 }
 
 function startGame(){
-  // Якщо є незбережений результат — спочатку зберігаємо
-  if (window._pendingDeeplink) {
-    const url = window._pendingDeeplink;
-    window._pendingDeeplink = null;
-    const tg = window.Telegram && window.Telegram.WebApp;
-    if (tg && tg.openTelegramLink) { try { tg.openTelegramLink(url); } catch(e) {} }
-    else if (tg && tg.openLink) { try { tg.openLink(url); } catch(e) {} }
-    else { window.open(url, '_blank'); }
-  }
   document.getElementById('startOverlay').classList.add('hidden');
   document.getElementById('gameOverOverlay').classList.add('hidden');
   document.getElementById('hintText').style.opacity='0';
@@ -397,38 +388,55 @@ function getTgUser() {
 async function sendScore(scoreVal) {
   const statusEl = document.getElementById('sendStatus');
   const tg = window.Telegram && window.Telegram.WebApp;
-
-  // Отримуємо initData — це підписані дані від Telegram
-  // Містить inline_message_id або chat/message id для setGameScore
   const initData = tg ? tg.initData : null;
 
-  if (initData && initData.length > 0) {
-    // Відправляємо на бекенд — бот викличе setGameScore
-    const params = new URLSearchParams({
-      type:     'game_score',
-      game:     'runner',
-      score:    Math.round(scoreVal),
-      initData: initData
-    });
-    const url = WEBHOOK_URL + '?' + params.toString();
+  statusEl.textContent = '⏳ Зберігаємо...';
+  statusEl.className = 'send-status';
 
+  if (initData && initData.length > 0) {
+    // Відправляємо через XMLHttpRequest (обходить обмеження no-cors)
+    const url = WEBHOOK_URL +
+      '?type=game_score&game=runner' +
+      '&score=' + Math.round(scoreVal) +
+      '&initData=' + encodeURIComponent(initData);
+
+    // Спроба 1: XHR (може спрацювати якщо GAS дозволяє CORS)
     try {
-      fetch(url, { method: 'GET', mode: 'no-cors' });
+      await new Promise((resolve) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open('GET', url, true);
+        xhr.onload = xhr.onerror = xhr.ontimeout = resolve;
+        xhr.timeout = 5000;
+        xhr.send();
+      });
     } catch(e) {}
-    // Image pixel як резерв
-    const img = new Image();
-    img.src = url + '&_t=' + Date.now();
+
+    // Спроба 2: img pixel — завжди спрацьовує, не блокується
+    await new Promise(resolve => {
+      const img = new Image();
+      img.onload = img.onerror = resolve;
+      img.src = url + '&_t=' + Date.now();
+      setTimeout(resolve, 3000);
+    });
 
     statusEl.textContent = '✅ Результат збережено!';
     statusEl.className = 'send-status ok';
     return;
   }
 
-  // Fallback якщо немає initData
+  // Fallback — ручна кнопка
+  const dl = 'https://t.me/AGameMasterbot?start=runner_' + Math.round(scoreVal);
   statusEl.innerHTML =
-    '<a href="https://t.me/AGameMasterbot?game=runner" ' +
-    'style="color:#f5a623;font-weight:900;font-size:11px;">👆 Зберегти результат</a>';
+    '<a href="' + dl + '" style="color:#f5a623;font-weight:900;font-size:11px;" ' +
+    'onclick="handleSaveClick(event,\'' + dl + '\')">👆 Зберегти результат</a>';
   statusEl.className = 'send-status err';
+}
+
+function handleSaveClick(e, url) {
+  e.preventDefault();
+  const tg = window.Telegram && window.Telegram.WebApp;
+  if (tg && tg.openTelegramLink) { try { tg.openTelegramLink(url); return; } catch(ex) {} }
+  window.location.href = url;
 }
 
 // ── END GAME ──────────────────────────────────────────────
@@ -468,20 +476,7 @@ function idleLoop(){
 // ── INIT ──────────────────────────────────────────────────
 speed=3; bgOffset=0; state='idle';
 obstacles=[]; coins=[]; enemies=[]; particles=[];
-window._pendingDeeplink = null;
 idleLoop();
-
-// Зберігаємо результат якщо гравець закриває гру
-document.addEventListener('visibilitychange', () => {
-  if (document.hidden && window._pendingDeeplink) {
-    const url = window._pendingDeeplink;
-    window._pendingDeeplink = null;
-    const tg = window.Telegram && window.Telegram.WebApp;
-    if (tg && tg.openTelegramLink) { try { tg.openTelegramLink(url); return; } catch(e) {} }
-    if (tg && tg.openLink) { try { tg.openLink(url); return; } catch(e) {} }
-    window.location.href = url;
-  }
-});
 
 if(window.Telegram && window.Telegram.WebApp){
   window.Telegram.WebApp.ready();
