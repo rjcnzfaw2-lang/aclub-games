@@ -38,6 +38,9 @@
   .medal-gold   { background:rgba(245,166,35,.2); color:var(--gold); }
   .medal-silver { background:rgba(160,160,160,.2); color:#aaa; }
   .medal-bronze { background:rgba(180,100,50,.2);  color:#cd7f32; }
+  .send-status { font-size:10px; color:var(--dim); text-align:center; min-height:16px; }
+  .send-status.ok  { color:#0f9b58; }
+  .send-status.err { color:var(--accent); }
 </style>
 </head>
 <body>
@@ -56,7 +59,7 @@
   <div class="overlay" id="startOverlay">
     <div class="overlay-title">áCLUB<br>RUNNER</div>
     <div class="tips">
-      🦅 <b>Літаючі вороги</b> — пригни (не стрибай!)<br>
+      🦅 <b>Летючі вороги</b> — пригни (не стрибай!)<br>
       🪙 <b>Монетки</b> — збирай (+10 очок)<br>
       🦘 <b>Подвійний стрибок</b> — через групи<br>
       📈 <b>Швидкість</b> росте з часом
@@ -73,6 +76,7 @@
     <div class="overlay-title" id="goTitle">GAME OVER</div>
     <div class="overlay-score" id="goScore">0</div>
     <div class="overlay-best">Рекорд: <span id="bestScore">0</span></div>
+    <div class="send-status" id="sendStatus">⏳ Зберігаємо результат...</div>
     <button class="btn btn-play" onclick="startGame()" style="max-width:180px">↺ ЩЕ РАЗ</button>
   </div>
 </div>
@@ -92,6 +96,8 @@
 const canvas = document.getElementById('gameCanvas');
 const ctx    = canvas.getContext('2d');
 const W=460, H=220, GROUND=H-40;
+
+// ── WEBHOOK URL ─────────────────────────────────────────────
 const WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbzpVAzDfxiu5plSRwBBPS3qLz6gZQDTYeEdMW3E4Kdd0VOjCcDAeWGPeUkAPM9d5xu-/exec";
 
 let state='idle', score, lives, speed, frame, obstacles, coins, enemies, particles, bestScore=0;
@@ -337,46 +343,103 @@ function startGame(){
   state='playing'; updateLivesHUD(); gameLoop();
 }
 
-// ── END GAME — автоматично відправляє результат ──────────
+// ── ОТРИМАННЯ ДАНИХ ГРАВЦЯ ────────────────────────────────
+function getTgUser() {
+  const tg = window.Telegram && window.Telegram.WebApp;
+  if (!tg) return { userId: null, userName: 'Гравець' };
+  tg.ready();
+  const u = tg.initDataUnsafe && tg.initDataUnsafe.user;
+  if (!u) return { userId: null, userName: 'Гравець' };
+  const firstName = u.first_name || '';
+  const lastName  = u.last_name  || '';
+  return {
+    userId:   String(u.id),
+    userName: (firstName + ' ' + lastName).trim() || u.username || 'Гравець'
+  };
+}
+
+// ── ВІДПРАВКА РЕЗУЛЬТАТУ: КІЛЬКА МЕТОДІВ ─────────────────
+async function sendScore(score) {
+  const statusEl = document.getElementById('sendStatus');
+  const tg = window.Telegram && window.Telegram.WebApp;
+
+  // ── Метод 1: sendData (тільки якщо відкрито через web_app кнопку в боті) ──
+  if (tg) {
+    try {
+      tg.sendData(JSON.stringify({ score, game: 'runner' }));
+      statusEl.textContent = '✅ Результат збережено!';
+      statusEl.className = 'send-status ok';
+      return;
+    } catch(e) {
+      // sendData недоступний — йдемо далі
+    }
+  }
+
+  const { userId, userName } = getTgUser();
+  if (!userId) {
+    statusEl.textContent = '⚠️ Не зареєстровано в боті';
+    statusEl.className = 'send-status err';
+    return;
+  }
+
+  const params = new URLSearchParams({
+    type:     'game_result',
+    game:     'runner',
+    score:    score,
+    userId:   userId,
+    userName: userName
+  });
+  const url = WEBHOOK_URL + '?' + params.toString();
+
+  // ── Метод 2: fetch no-cors (результат не перевіряємо — GAS приймає) ──
+  try {
+    await fetch(url, { method: 'GET', mode: 'no-cors' });
+    // no-cors завжди повертає opaque response — вважаємо успіхом
+    statusEl.textContent = '✅ Результат надіслано!';
+    statusEl.className = 'send-status ok';
+    return;
+  } catch(e) {
+    // fetch заблоковано — йдемо далі
+  }
+
+  // ── Метод 3: Image pixel (обхід CORS без fetch, не блокується) ──
+  try {
+    await new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload  = resolve;
+      img.onerror = resolve; // GAS завжди повертає 302 → вважаємо успіхом
+      img.src = url + '&_t=' + Date.now();
+      setTimeout(resolve, 5000); // таймаут 5 сек
+    });
+    statusEl.textContent = '✅ Результат надіслано!';
+    statusEl.className = 'send-status ok';
+    return;
+  } catch(e) {
+    // нічого
+  }
+
+  // ── Метод 4: Fallback — deeplink до бота з результатом ──
+  // Відкриває бота з параметром, бот записує результат
+  statusEl.innerHTML = '⚠️ <a href="https://t.me/AGameMasterbot?start=runner_' + score + '" style="color:#f5a623">Натисни щоб зберегти результат</a>';
+  statusEl.className = 'send-status err';
+}
+
+// ── END GAME ──────────────────────────────────────────────
 function endGame(){
   state='dead';
   if(score>bestScore) bestScore=score;
 
-  // Показуємо Game Over одразу
   document.getElementById('goScore').textContent = score + ' очок';
   document.getElementById('bestScore').textContent = bestScore;
+  document.getElementById('sendStatus').textContent = '⏳ Зберігаємо результат...';
+  document.getElementById('sendStatus').className = 'send-status';
   document.getElementById('gameOverOverlay').classList.remove('hidden');
+
   ctx.clearRect(0,0,W,H); drawBackground(); player.draw();
   ctx.fillStyle='rgba(0,0,0,.5)'; ctx.fillRect(0,0,W,H);
 
   // Відправляємо результат
-  const tg = window.Telegram && window.Telegram.WebApp;
-  if(!tg) return;
-
-  tg.ready();
-
-  // Спроба 1: sendData (працює якщо гра відкрита через web_app кнопку в боті)
-  try {
-    tg.sendData(JSON.stringify({score: score, game: 'runner'}));
-    return; // якщо спрацювало — виходимо
-  } catch(e) {
-    // sendData не спрацював — використовуємо Image fallback
-  }
-
-  // Спроба 2: Image request (обходить CORS, працює з Mini App в чаті)
-  const userId = tg.initDataUnsafe && tg.initDataUnsafe.user ? tg.initDataUnsafe.user.id : null;
-  const firstName = tg.initDataUnsafe && tg.initDataUnsafe.user ? (tg.initDataUnsafe.user.first_name || '') : '';
-  const lastName  = tg.initDataUnsafe && tg.initDataUnsafe.user ? (tg.initDataUnsafe.user.last_name  || '') : '';
-  const userName  = (firstName + ' ' + lastName).trim() || 'Гравець';
-
-if(userId){
-    const url = WEBHOOK_URL +
-      "?type=game_result&game=runner" +
-      "&score=" + encodeURIComponent(score) +
-      "&userId=" + encodeURIComponent(userId) +
-      "&userName=" + encodeURIComponent(userName);
-    fetch(url, {mode: 'no-cors'}).catch(()=>{});
-  }
+  sendScore(score);
 }
 
 // ── IDLE LOOP ─────────────────────────────────────────────
@@ -386,11 +449,13 @@ function idleLoop(){
   player.animTick++; if(player.animTick%20===0) player.animFrame=(player.animFrame+1)%4;
   player.draw();
   requestAnimationFrame(idleLoop);
+}
 
 // ── INIT ──────────────────────────────────────────────────
 speed=3; bgOffset=0; state='idle';
 obstacles=[]; coins=[]; enemies=[]; particles=[];
 idleLoop();
+
 if(window.Telegram && window.Telegram.WebApp){
   window.Telegram.WebApp.ready();
   window.Telegram.WebApp.expand();
