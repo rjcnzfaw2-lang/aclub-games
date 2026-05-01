@@ -461,19 +461,26 @@ function tryOpenTg(e, url) {
 // ── END GAME ──────────────────────────────────────────────
 function endGame(){
   state='dead';
-  if(score>bestScore) bestScore=score;
+  const isNewBest = score > bestScore;
+  if(isNewBest) bestScore = score;
 
   document.getElementById('goScore').textContent = score + ' очок';
   document.getElementById('bestScore').textContent = bestScore;
-  document.getElementById('sendStatus').textContent = '⏳ Зберігаємо результат...';
-  document.getElementById('sendStatus').className = 'send-status';
-  document.getElementById('gameOverOverlay').classList.remove('hidden');
 
+  const statusEl = document.getElementById('sendStatus');
+  if(isNewBest){
+    statusEl.textContent = '⏳ Зберігаємо новий рекорд...';
+    statusEl.className = 'send-status';
+  } else {
+    statusEl.textContent = '▸ Не новий рекорд';
+    statusEl.className = 'send-status';
+  }
+
+  document.getElementById('gameOverOverlay').classList.remove('hidden');
   ctx.clearRect(0,0,W,H); drawBackground(); player.draw();
   ctx.fillStyle='rgba(0,0,0,.5)'; ctx.fillRect(0,0,W,H);
 
-  // Відправляємо результат
-  sendScore(score);
+  if(isNewBest) sendScore(score);
 }
 
 // ── IDLE LOOP ─────────────────────────────────────────────
