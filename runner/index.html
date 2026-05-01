@@ -388,19 +388,53 @@ function getTgUser() {
 async function sendScore(scoreVal) {
   const statusEl = document.getElementById('sendStatus');
   const tg = window.Telegram && window.Telegram.WebApp;
-  const initData = tg ? tg.initData : null;
 
   statusEl.textContent = '⏳ Зберігаємо...';
   statusEl.className = 'send-status';
 
-  if (initData && initData.length > 0) {
-    // Відправляємо через XMLHttpRequest (обходить обмеження no-cors)
+  // Діагностика — що є в Telegram об'єкті
+  const initData      = tg ? (tg.initData || '') : '';
+  const urlParams     = new URLSearchParams(window.location.search);
+  const hashParams    = window.location.hash ? new URLSearchParams(window.location.hash.slice(1)) : new URLSearchParams();
+
+  // Для Games API Telegram передає дані через URL hash або query
+  const tgData        = urlParams.get('tgWebAppData') || hashParams.get('tgWebAppData') || initData;
+
+  // Спроба зібрати всі можливі ідентифікатори
+  let userId   = null;
+  let userName = 'Гравець';
+
+  // З initDataUnsafe
+  if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
+    const u  = tg.initDataUnsafe.user;
+    userId   = String(u.id);
+    const fn = u.first_name || '', ln = u.last_name || '';
+    userName = (fn + ' ' + ln).trim() || u.username || 'Гравець';
+  }
+  // Парсинг з initData
+  if (!userId && tgData) {
+    try {
+      const p = Object.fromEntries(new URLSearchParams(tgData));
+      if (p.user) {
+        const u = JSON.parse(decodeURIComponent(p.user));
+        if (u && u.id) {
+          userId   = String(u.id);
+          const fn = u.first_name || '', ln = u.last_name || '';
+          userName = (fn + ' ' + ln).trim() || u.username || 'Гравець';
+        }
+      }
+    } catch(e) {}
+  }
+
+  // Якщо є userId і initData — відправляємо через GAS
+  if (userId && tgData) {
     const url = WEBHOOK_URL +
       '?type=game_score&game=runner' +
       '&score=' + Math.round(scoreVal) +
-      '&initData=' + encodeURIComponent(initData);
+      '&userId=' + encodeURIComponent(userId) +
+      '&userName=' + encodeURIComponent(userName) +
+      '&initData=' + encodeURIComponent(tgData);
 
-    // Спроба 1: XHR (може спрацювати якщо GAS дозволяє CORS)
     try {
       await new Promise((resolve) => {
         const xhr = new XMLHttpRequest();
@@ -411,20 +445,41 @@ async function sendScore(scoreVal) {
       });
     } catch(e) {}
 
-    // Спроба 2: img pixel — завжди спрацьовує, не блокується
-    await new Promise(resolve => {
-      const img = new Image();
-      img.onload = img.onerror = resolve;
-      img.src = url + '&_t=' + Date.now();
-      setTimeout(resolve, 3000);
-    });
+    // Image pixel як резерв
+    const img = new Image();
+    img.src = url + '&_t=' + Date.now();
 
     statusEl.textContent = '✅ Результат збережено!';
     statusEl.className = 'send-status ok';
     return;
   }
 
-  // Fallback — ручна кнопка
+  // Якщо є userId але немає initData — відправляємо без setGameScore
+  if (userId) {
+    const url = WEBHOOK_URL +
+      '?type=game_result&game=runner' +
+      '&score=' + Math.round(scoreVal) +
+      '&userId=' + encodeURIComponent(userId) +
+      '&userName=' + encodeURIComponent(userName);
+
+    try {
+      await new Promise((resolve) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open('GET', url, true);
+        xhr.onload = xhr.onerror = xhr.ontimeout = resolve;
+        xhr.timeout = 5000;
+        xhr.send();
+      });
+    } catch(e) {}
+    const img = new Image();
+    img.src = url + '&_t=' + Date.now();
+
+    statusEl.textContent = '✅ Результат збережено!';
+    statusEl.className = 'send-status ok';
+    return;
+  }
+
+  // Немає нічого — кнопка
   const dl = 'https://t.me/AGameMasterbot?start=runner_' + Math.round(scoreVal);
   statusEl.innerHTML =
     '<a href="' + dl + '" style="color:#f5a623;font-weight:900;font-size:11px;" ' +
