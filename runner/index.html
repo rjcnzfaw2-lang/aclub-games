@@ -384,78 +384,58 @@ function getTgUser() {
   return { userId: null, userName: null, initData: tg ? tg.initData : null };
 }
 
-// ── ВІДПРАВКА РЕЗУЛЬТАТУ: КАСКАД МЕТОДІВ ─────────────────
+// ── ВІДПРАВКА РЕЗУЛЬТАТУ ──────────────────────────────────
 async function sendScore(score) {
   const statusEl = document.getElementById('sendStatus');
   const tg = window.Telegram && window.Telegram.WebApp;
 
-  // ── Метод 1: sendData (тільки якщо відкрито через web_app кнопку в боті) ──
+  // Метод 1: sendData (якщо відкрито через web_app кнопку в боті)
   if (tg) {
     try {
       tg.sendData(JSON.stringify({ score, game: 'runner' }));
       statusEl.textContent = '✅ Результат збережено!';
       statusEl.className = 'send-status ok';
       return;
-    } catch(e) { /* не в контексті бота — йдемо далі */ }
+    } catch(e) {}
   }
 
-  const { userId, userName, initData } = getTgUser();
+  const { userId, userName } = getTgUser();
+  const deeplinkUrl = 'https://t.me/AGameMasterbot?start=runner_' + Math.round(score);
 
-  // ── Метод 2: є userId → відправляємо на GAS doGet ──────
+  // Метод 2: fetch no-cors (спробуємо фоново)
   if (userId) {
     const params = new URLSearchParams({
-      type:     'game_result',
-      game:     'runner',
-      score:    score,
-      userId:   userId,
-      userName: userName
+      type: 'game_result', game: 'runner',
+      score, userId, userName
     });
     const url = WEBHOOK_URL + '?' + params.toString();
-
-    // 2a: fetch no-cors
     try {
       await fetch(url, { method: 'GET', mode: 'no-cors' });
-      statusEl.textContent = '✅ Результат надіслано!';
-      statusEl.className = 'send-status ok';
-      return;
-    } catch(e) { /* заблоковано */ }
-
-    // 2b: Image pixel fallback (ніколи не блокується CORS)
-    try {
-      await new Promise(resolve => {
-        const img = new Image();
-        img.onload = img.onerror = resolve;
-        img.src = url + '&_t=' + Date.now();
-        setTimeout(resolve, 4000);
-      });
-      statusEl.textContent = '✅ Результат надіслано!';
-      statusEl.className = 'send-status ok';
-      return;
-    } catch(e) { /* нічого */ }
+    } catch(e) {}
+    // Також image pixel паралельно
+    const img = new Image();
+    img.src = url + '&_t=' + Date.now();
   }
 
-  // ── Метод 3: немає userId — показуємо кнопку deeplink ──
-  // Гравець натискає → відкривається бот → /start runner_SCORE → записується
-  // Додатково: openTelegramLink щоб не залишати Mini App
-  const deeplinkScore = Math.round(score);
-  const deeplinkUrl   = 'https://t.me/AGameMasterbot?start=runner_' + deeplinkScore;
-
-  statusEl.innerHTML =
-    '<a href="' + deeplinkUrl + '" ' +
-    'style="color:#f5a623;text-decoration:none;font-weight:900;font-size:11px;" ' +
-    'onclick="tryOpenTg(event,\'' + deeplinkUrl + '\')">' +
-    '👆 Натисни для збереження результату</a>';
-  statusEl.className = 'send-status err';
-}
-
-function tryOpenTg(e, url) {
-  // Якщо є Telegram WebApp API — використовуємо його щоб відкрити бота
-  const tg = window.Telegram && window.Telegram.WebApp;
+  // Метод 3: openTelegramLink — відкриває бота АВТОМАТИЧНО
+  // Це єдиний надійний спосіб з групового чату
   if (tg && tg.openTelegramLink) {
-    e.preventDefault();
-    tg.openTelegramLink(url);
+    statusEl.textContent = '⏳ Відкриваємо бота...';
+    statusEl.className = 'send-status';
+    // Невелика затримка щоб гравець побачив Game Over
+    setTimeout(() => {
+      tg.openTelegramLink(deeplinkUrl);
+      statusEl.textContent = '✅ Результат надіслано до бота!';
+      statusEl.className = 'send-status ok';
+    }, 1500);
+    return;
   }
-  // Інакше — звичайний перехід по посиланню
+
+  // Fallback: ручна кнопка
+  statusEl.innerHTML =
+    '<a href="' + deeplinkUrl + '" style="color:#f5a623;font-weight:900">' +
+    '👆 Натисни для збереження</a>';
+  statusEl.className = 'send-status err';
 }
 
 // ── END GAME ──────────────────────────────────────────────
