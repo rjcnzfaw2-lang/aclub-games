@@ -417,21 +417,47 @@ async function sendScore(scoreVal) {
     } catch(e) {}
   }
 
-  // Якщо є userId — відправляємо АВТОМАТИЧНО
+  // Якщо є userId — відправляємо через TelegramGameProxy (офіційний Games API)
   if (userId) {
+    // Спроба 1: TelegramGameProxy — офіційний метод для Telegram Games
+    try {
+      if (window.TelegramGameProxy && window.TelegramGameProxy.receiveEvent) {
+        window.TelegramGameProxy.receiveEvent('game_over', { score: Math.round(scoreVal) });
+        statusEl.textContent = '✅ Результат збережено!';
+        statusEl.className = 'send-status ok';
+        return;
+      }
+    } catch(e) {}
+
+    // Спроба 2: postMessage до батьківського вікна Telegram
+    try {
+      window.parent.postMessage(JSON.stringify({
+        eventName: 'game_over',
+        eventData: { score: Math.round(scoreVal) }
+      }), '*');
+    } catch(e) {}
+
+    // Спроба 3: sendData через WebApp
+    const tg = window.Telegram && window.Telegram.WebApp;
+    try {
+      if (tg && tg.sendData) {
+        tg.sendData(JSON.stringify({ type: 'game_result', game: 'runner', score: Math.round(scoreVal), userId: userId, userName: userName }));
+        statusEl.textContent = '✅ Результат збережено!';
+        statusEl.className = 'send-status ok';
+        return;
+      }
+    } catch(e) {}
+
+    // Спроба 4: HTTP запити паралельно
     const url = WEBHOOK_URL +
       '?type=game_result&game=runner' +
       '&score='    + Math.round(scoreVal) +
       '&userId='   + encodeURIComponent(userId) +
       '&userName=' + encodeURIComponent(userName);
 
-    // Спроба 1: fetch з keepalive (найнадійніший)
     try { fetch(url, { method: 'GET', mode: 'no-cors', keepalive: true }); } catch(e) {}
-    // Спроба 2: XMLHttpRequest
     try { const x = new XMLHttpRequest(); x.open('GET', url, true); x.timeout = 8000; x.send(); } catch(e) {}
-    // Спроба 3: sendBeacon (працює навіть якщо сторінка закривається)
     try { if (navigator.sendBeacon) navigator.sendBeacon(url); } catch(e) {}
-    // Спроба 4: image pixel — обходить CORS
     try { new Image().src = url + '&_t=' + Date.now(); } catch(e) {}
 
     statusEl.textContent = '✅ Результат збережено!';
