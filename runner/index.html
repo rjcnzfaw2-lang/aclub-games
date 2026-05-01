@@ -344,63 +344,85 @@ function startGame(){
 }
 
 // ── ОТРИМАННЯ ДАНИХ ГРАВЦЯ ────────────────────────────────
+// ── ОТРИМАННЯ ДАНИХ ГРАВЦЯ ────────────────────────────────
 function getTgUser() {
   const tg = window.Telegram && window.Telegram.WebApp;
-  if (!tg) return { userId: null, userName: 'Гравець' };
-  tg.ready();
+  if (!tg) return { userId: null, userName: null };
+
+  // Спроба 1: initDataUnsafe
   const u = tg.initDataUnsafe && tg.initDataUnsafe.user;
-  if (!u) return { userId: null, userName: 'Гравець' };
-  const firstName = u.first_name || '';
-  const lastName  = u.last_name  || '';
-  return {
-    userId:   String(u.id),
-    userName: (firstName + ' ' + lastName).trim() || u.username || 'Гравець'
-  };
+  if (u && u.id) {
+    const fn = u.first_name || '', ln = u.last_name || '';
+    return { userId: String(u.id), userName: (fn+' '+ln).trim() || u.username || 'Гравець' };
+  }
+
+  // Спроба 2: парсимо initData вручну
+  try {
+    const raw = tg.initData;
+    if (raw && raw.length > 0) {
+      const parsed = Object.fromEntries(new URLSearchParams(raw));
+      if (parsed.user) {
+        const pu = JSON.parse(decodeURIComponent(parsed.user));
+        if (pu && pu.id) {
+          const fn = pu.first_name || '', ln = pu.last_name || '';
+          return { userId: String(pu.id), userName: (fn+' '+ln).trim() || pu.username || 'Гравець' };
+        }
+      }
+    }
+  } catch(e) {}
+
+  return { userId: null, userName: null };
 }
 
-// ── ВІДПРАВКА РЕЗУЛЬТАТУ: КІЛЬКА МЕТОДІВ ─────────────────
 async function sendScore(score) {
   const statusEl = document.getElementById('sendStatus');
   const tg = window.Telegram && window.Telegram.WebApp;
 
-  // ── Метод 1: sendData (тільки якщо відкрито через web_app кнопку в боті) ──
   if (tg) {
     try {
       tg.sendData(JSON.stringify({ score, game: 'runner' }));
       statusEl.textContent = '✅ Результат збережено!';
       statusEl.className = 'send-status ok';
       return;
-    } catch(e) {
-      // sendData недоступний — йдемо далі
-    }
+    } catch(e) {}
   }
 
   const { userId, userName } = getTgUser();
-  if (!userId) {
-    statusEl.textContent = '⚠️ Не зареєстровано в боті';
-    statusEl.className = 'send-status err';
-    return;
-  }
 
-  const params = new URLSearchParams({
-    type:     'game_result',
-    game:     'runner',
-    score:    score,
-    userId:   userId,
-    userName: userName
-  });
-  const url = WEBHOOK_URL + '?' + params.toString();
+  if (userId) {
+    const params = new URLSearchParams({ type:'game_result', game:'runner', score, userId, userName });
+    const url = WEBHOOK_URL + '?' + params.toString();
 
-  // ── Метод 2: fetch no-cors (результат не перевіряємо — GAS приймає) ──
-  try {
-    await fetch(url, { method: 'GET', mode: 'no-cors' });
-    // no-cors завжди повертає opaque response — вважаємо успіхом
+    // fetch no-cors
+    try {
+      await fetch(url, { method:'GET', mode:'no-cors' });
+      statusEl.textContent = '✅ Результат надіслано!';
+      statusEl.className = 'send-status ok';
+      return;
+    } catch(e) {}
+
+    // Image pixel fallback
+    await new Promise(resolve => {
+      const img = new Image();
+      img.onload = img.onerror = resolve;
+      img.src = url + '&_t=' + Date.now();
+      setTimeout(resolve, 4000);
+    });
     statusEl.textContent = '✅ Результат надіслано!';
     statusEl.className = 'send-status ok';
     return;
-  } catch(e) {
-    // fetch заблоковано — йдемо далі
   }
+
+  // Немає userId — показуємо deeplink кнопку
+  const dl = 'https://t.me/AGameMasterbot?start=runner_' + Math.round(score);
+  statusEl.innerHTML = '<a href="'+dl+'" style="color:#f5a623;font-weight:900" onclick="tryOpenTg(event,\''+dl+'\')">👆 Натисни для збереження результату</a>';
+  statusEl.className = 'send-status err';
+}
+
+function tryOpenTg(e, url) {
+  const tg = window.Telegram && window.Telegram.WebApp;
+  if (tg && tg.openTelegramLink) { e.preventDefault(); tg.openTelegramLink(url); }
+}
 
   // ── Метод 3: Image pixel (обхід CORS без fetch, не блокується) ──
   try {
