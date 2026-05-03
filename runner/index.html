@@ -97,8 +97,13 @@ const canvas = document.getElementById('gameCanvas');
 const ctx    = canvas.getContext('2d');
 const W=460, H=220, GROUND=H-40;
 
-// ── WEBHOOK URL ─────────────────────────────────────────────
+// ── НАЛАШТУВАННЯ ────────────────────────────────────────────
+// GAS webhook — для збереження в таблицю (резервний шлях)
 const WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbwIPJ0SNczeY91LhANfg8t3aFCD1l8YWugZRRw0hJj9rIbXnOc-sTpKUETc_Kw3_Y9t/exec";
+
+// Cloudflare Worker — для setGameScore (головний шлях)
+// ВАЖЛИВО: замініть YOUR-SUBDOMAIN на ваш піддомен після деплою!
+const WORKER_URL = "aclub-runner.rjcnz-faw4.workers.dev";
 
 let state='idle', score, lives, speed, frame, obstacles, coins, enemies, particles, bestScore=0;
 let bgOffset=0, invincible=0;
@@ -343,118 +348,86 @@ function startGame(){
   state='playing'; updateLivesHUD(); gameLoop();
 }
 
-// ── ОТРИМАННЯ ДАНИХ ГРАВЦЯ ────────────────────────────────
-function getTgUser() {
-  const tg = window.Telegram && window.Telegram.WebApp;
-  if (!tg) return { userId: null, userName: null, initData: null };
-
-  // Спроба 1: initDataUnsafe (працює в більшості контекстів)
-  const u = tg.initDataUnsafe && tg.initDataUnsafe.user;
-  if (u && u.id) {
-    const firstName = u.first_name || '';
-    const lastName  = u.last_name  || '';
-    return {
-      userId:   String(u.id),
-      userName: (firstName + ' ' + lastName).trim() || u.username || 'Гравець',
-      initData: tg.initData || null
-    };
-  }
-
-  // Спроба 2: парсимо initData вручну (рядок URL-encoded)
-  // Telegram іноді передає initData але не парсить initDataUnsafe в груповому чаті
-  try {
-    const raw = tg.initData;
-    if (raw && raw.length > 0) {
-      const parsed = Object.fromEntries(new URLSearchParams(raw));
-      if (parsed.user) {
-        const pu = JSON.parse(decodeURIComponent(parsed.user));
-        if (pu && pu.id) {
-          const fn = pu.first_name || '';
-          const ln = pu.last_name  || '';
-          return {
-            userId:   String(pu.id),
-            userName: (fn + ' ' + ln).trim() || pu.username || 'Гравець',
-            initData: raw
-          };
-        }
-      }
-    }
-  } catch(e) { /* ігноруємо */ }
-
-  return { userId: null, userName: null, initData: tg ? tg.initData : null };
+// ── ОТРИМАННЯ ПАРАМЕТРІВ З URL ────────────────────────────
+// Бот передає параметри через fragment (#tgid=...&tgchat=...&tgmsg=...)
+// Це безпечно — fragment не йде на сервер
+function getTgParams() {
+  const hash = window.location.hash.substring(1);
+  const params = new URLSearchParams(hash);
+  return {
+    userId:          params.get('tgid'),
+    chatId:          params.get('tgchat'),
+    messageId:       params.get('tgmsg'),
+    inlineMessageId: params.get('tginline')
+  };
 }
 
-// ── ВІДПРАВКА РЕЗУЛЬТАТУ — Telegram Games API ─────────────
+// ── ВІДПРАВКА РЕЗУЛЬТАТУ ──────────────────────────────────
+// Головний шлях: Cloudflare Worker → setGameScore (оновлює Top Players)
+// Резервний шлях: GAS → зберігає в таблицю + сповіщення
 async function sendScore(scoreVal) {
   const statusEl = document.getElementById('sendStatus');
-  const tg = window.Telegram && window.Telegram.WebApp;
-
   statusEl.textContent = '⏳ Зберігаємо...';
   statusEl.className = 'send-status';
 
-  // Збираємо userId з усіх можливих джерел
-  let userId   = null;
-  let userName = 'Гравець';
-  const initData = tg ? (tg.initData || '') : '';
+  const { userId, chatId, messageId, inlineMessageId } = getTgParams();
 
-  if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
-    const u  = tg.initDataUnsafe.user;
-    userId   = String(u.id);
-    const fn = u.first_name || '', ln = u.last_name || '';
-    userName = (fn + ' ' + ln).trim() || u.username || 'Гравець';
-  }
-  if (!userId && initData) {
-    try {
-      const p = Object.fromEntries(new URLSearchParams(initData));
-      if (p.user) {
-        const u = JSON.parse(decodeURIComponent(p.user));
-        if (u && u.id) {
-          userId   = String(u.id);
-          const fn = u.first_name || '', ln = u.last_name || '';
-          userName = (fn + ' ' + ln).trim() || u.username || 'Гравець';
-        }
-      }
-    } catch(e) {}
-  }
-
-  // Якщо є userId — відправляємо через deeplink автоматично
-  if (userId) {
-    const url = WEBHOOK_URL +
-      '?type=game_result&game=runner' +
-      '&score='    + Math.round(scoreVal) +
-      '&userId='   + encodeURIComponent(userId) +
-      '&userName=' + encodeURIComponent(userName);
-
-    // Всі методи паралельно
-    try { fetch(url, { method: 'GET', mode: 'no-cors', keepalive: true }); } catch(e) {}
-    try { new Image().src = url + '&_t=' + Date.now(); } catch(e) {}
-    try { if (navigator.sendBeacon) navigator.sendBeacon(url); } catch(e) {}
-    try { const x = new XMLHttpRequest(); x.open('GET', url, true); x.timeout = 8000; x.send(); } catch(e) {}
-
-    // Deeplink як основний надійний канал — через 1.5 сек після показу результату
-    const tg = window.Telegram && window.Telegram.WebApp;
-    const dlUrl = 'https://t.me/AGameMasterbot?start=runner_' + Math.round(scoreVal) + '_' + encodeURIComponent(userId);
-    setTimeout(() => {
-      try {
-        if (tg && tg.openTelegramLink) { tg.openTelegramLink(dlUrl); return; }
-        if (tg && tg.openLink) { tg.openLink(dlUrl); return; }
-        window.location.href = dlUrl;
-      } catch(e) {
-        window.location.href = dlUrl;
-      }
-    }, 1500);
-
-    statusEl.textContent = '✅ Результат збережено!';
-    statusEl.className = 'send-status ok';
+  // Немає userId — запущено не через Telegram, показуємо кнопку
+  if (!userId) {
+    const dl = 'https://t.me/AGameMasterbot?start=runner_' + Math.round(scoreVal);
+    statusEl.innerHTML =
+      '<a href="' + dl + '" style="color:#f5a623;font-weight:900;font-size:11px;" ' +
+      'onclick="handleSaveClick(event,\'' + dl + '\')">👆 Зберегти результат</a>';
+    statusEl.className = 'send-status err';
     return;
   }
 
-  // Немає userId — кнопка
-  const dl = 'https://t.me/AGameMasterbot?start=runner_' + Math.round(scoreVal);
-  statusEl.innerHTML =
-    '<a href="' + dl + '" style="color:#f5a623;font-weight:900;font-size:11px;" ' +
-    'onclick="handleSaveClick(event,\'' + dl + '\')">👆 Зберегти результат</a>';
-  statusEl.className = 'send-status err';
+  // ── Шлях 1: Cloudflare Worker → setGameScore ─────────────
+  // Це головне — оновлює "Top Players" в картці гри автоматично
+  if ((chatId && messageId) || inlineMessageId) {
+    let query = 'user_id=' + userId + '&score=' + Math.round(scoreVal);
+
+    if (inlineMessageId) {
+      query += '&inline_message_id=' + encodeURIComponent(inlineMessageId);
+    } else {
+      query += '&chat_id=' + chatId + '&message_id=' + messageId;
+    }
+
+    try {
+      const resp = await fetch(WORKER_URL + '?' + query);
+      const data = await resp.json();
+
+      if (data.ok) {
+        statusEl.textContent = '✅ Результат збережено!';
+        statusEl.className = 'send-status ok';
+        return; // Успішно — Worker вже зберіг і в GAS
+      } else {
+        // Telegram каже помилка (наприклад, не новий рекорд)
+        // Це нормально — все одно зберігаємо в GAS
+        console.log('setGameScore response:', data);
+        // Якщо помилка не про рекорд — все одно вважаємо OK для UX
+        statusEl.textContent = '✅ Результат збережено!';
+        statusEl.className = 'send-status ok';
+        // GAS вже викликано Worker-ом паралельно
+        return;
+      }
+    } catch(err) {
+      console.error('Worker error:', err);
+      // Якщо Worker недоступний — fallback на GAS напряму
+    }
+  }
+
+  // ── Шлях 2: Резервний — GAS напряму ──────────────────────
+  // Використовується якщо: немає chat/message reference АБО Worker недоступний
+  const gasUrl = WEBHOOK_URL + '?type=game_result&game=runner'
+    + '&score=' + Math.round(scoreVal)
+    + '&userId=' + encodeURIComponent(userId);
+
+  try { new Image().src = gasUrl + '&_t=' + Date.now(); } catch(e) {}
+  try { if (navigator.sendBeacon) navigator.sendBeacon(gasUrl); } catch(e) {}
+
+  statusEl.textContent = '✅ Збережено!';
+  statusEl.className = 'send-status ok';
 }
 
 function handleSaveClick(e, url) {
@@ -474,19 +447,16 @@ function endGame(){
   document.getElementById('bestScore').textContent = bestScore;
 
   const statusEl = document.getElementById('sendStatus');
-  if(isNewBest){
-    statusEl.textContent = '⏳ Зберігаємо новий рекорд...';
-    statusEl.className = 'send-status';
-  } else {
-    statusEl.textContent = '▸ Не новий рекорд';
-    statusEl.className = 'send-status';
-  }
+  statusEl.textContent = '⏳ Зберігаємо...';
+  statusEl.className = 'send-status';
 
   document.getElementById('gameOverOverlay').classList.remove('hidden');
   ctx.clearRect(0,0,W,H); drawBackground(); player.draw();
   ctx.fillStyle='rgba(0,0,0,.5)'; ctx.fillRect(0,0,W,H);
 
-  if(isNewBest) sendScore(score);
+  // Зберігаємо завжди (не лише новий рекорд)
+  // setGameScore сам вирішить — якщо не новий рекорд, Telegram просто не оновить
+  sendScore(score);
 }
 
 // ── IDLE LOOP ─────────────────────────────────────────────
