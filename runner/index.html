@@ -7,56 +7,44 @@
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Unbounded:wght@400;700;900&family=Nunito:wght@400;700;900&display=swap');
   :root {
-    --sky1:#1a3a5c; --sky2:#0d2137; --green:#00c853; --green2:#69f0ae;
-    --gold:#ffd740; --red:#ff1744; --accent:#00e676;
-    --ui-bg:rgba(0,20,40,.85); --dim:#90a4ae;
+    --sky2:#0d2137; --green:#00c853; --gold:#ffd740; --red:#ff1744; --accent:#00e676;
+    --ui-bg:rgba(0,20,40,.88); --dim:#90a4ae;
   }
   * { margin:0; padding:0; box-sizing:border-box; }
   body { background:var(--sky2); font-family:'Nunito',sans-serif; display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:100vh; overflow:hidden; touch-action:manipulation; }
-
   .wrapper { position:relative; z-index:1; display:flex; flex-direction:column; align-items:center; width:100%; max-width:520px; padding:8px; }
-
-  /* HUD */
   .hud { width:100%; display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; padding:7px 12px; background:var(--ui-bg); border-radius:12px; border:1px solid rgba(0,200,83,.25); gap:8px; }
   .hud-score { font-family:'Press Start 2P',monospace; font-size:12px; color:var(--gold); text-shadow:0 0 8px rgba(255,215,64,.7); }
   .hud-lives { display:flex; gap:3px; }
   .heart { font-size:16px; transition:all .3s; }
   .heart.lost { filter:grayscale(1); opacity:.25; }
   .hud-speed { font-size:10px; color:var(--accent); font-weight:900; font-family:'Press Start 2P',monospace; }
-  .hud-boost { font-size:10px; color:#fff; font-weight:700; min-width:60px; text-align:right; }
-
-  /* CANVAS */
+  .hud-boost { font-size:10px; color:#fff; font-weight:700; min-width:80px; text-align:right; letter-spacing:.3px; }
   #gameCanvas { border-radius:12px; border:2px solid rgba(0,200,83,.3); box-shadow:0 0 40px rgba(0,200,83,.15),0 20px 60px rgba(0,0,0,.6); display:block; width:100%; height:auto; touch-action:none; }
-
-  /* OVERLAYS */
-  .overlay { position:absolute; top:36px; left:8px; right:8px; background:rgba(5,15,30,.97); border-radius:16px; border:2px solid rgba(0,200,83,.4); display:flex; flex-direction:column; align-items:center; justify-content:center; padding:24px 18px; gap:12px; backdrop-filter:blur(12px); box-shadow:0 0 60px rgba(0,200,83,.1); }
+  .overlay { position:absolute; top:36px; left:8px; right:8px; background:rgba(5,15,30,.97); border-radius:16px; border:2px solid rgba(0,200,83,.4); display:flex; flex-direction:column; align-items:center; justify-content:center; padding:24px 18px; gap:12px; backdrop-filter:blur(12px); }
   .overlay.hidden { display:none; }
   .overlay-title { font-family:'Unbounded',sans-serif; font-size:20px; color:var(--accent); text-align:center; line-height:1.3; text-shadow:0 0 20px rgba(0,230,118,.8); font-weight:900; letter-spacing:2px; }
   .overlay-sub { font-size:11px; color:var(--dim); text-align:center; letter-spacing:1px; }
   .overlay-score { font-family:'Press Start 2P',monospace; font-size:24px; color:var(--gold); text-shadow:0 0 15px rgba(255,215,64,.7); }
   .overlay-best { font-size:12px; color:var(--dim); }
   .overlay-best span { color:#eee; font-weight:900; }
-
   .btn { font-family:'Press Start 2P',monospace; font-size:10px; padding:13px 24px; border:none; border-radius:10px; cursor:pointer; transition:all .15s; letter-spacing:.5px; width:100%; max-width:240px; }
   .btn-play { background:linear-gradient(135deg,var(--green),#00a152); color:#001a0a; box-shadow:0 4px 20px rgba(0,200,83,.4); }
   .btn-play:active { transform:scale(.96); }
-
-  .tips { font-size:9px; color:var(--dim); text-align:center; line-height:2; }
+  .tips { font-size:9px; color:var(--dim); text-align:center; line-height:2.1; }
   .tips b { color:#ccc; }
   .medals { display:flex; gap:6px; flex-wrap:wrap; justify-content:center; }
   .medal { padding:5px 10px; border-radius:8px; font-size:10px; font-weight:900; border:1px solid rgba(255,255,255,.12); }
   .medal-gold   { background:rgba(255,215,64,.15); color:var(--gold); }
   .medal-silver { background:rgba(160,160,160,.15); color:#aaa; }
   .medal-bronze { background:rgba(180,100,50,.15); color:#cd7f32; }
-
   .send-status { font-size:9px; color:var(--dim); text-align:center; min-height:14px; }
   .send-status.ok  { color:var(--green); }
   .send-status.err { color:var(--red); }
-
-  .boost-list { display:flex; gap:6px; flex-wrap:wrap; justify-content:center; max-width:340px; }
-  .boost-item { padding:4px 8px; border-radius:6px; font-size:8px; font-weight:900; border:1px solid rgba(255,255,255,.1); }
-  .boost-item.good  { background:rgba(0,200,83,.15); color:var(--accent); }
-  .boost-item.bad   { background:rgba(255,23,68,.15); color:#ff6090; }
+  .legend { display:flex; gap:8px; flex-wrap:wrap; justify-content:center; }
+  .legend-item { padding:4px 8px; border-radius:6px; font-size:8px; font-weight:900; border:1px solid rgba(255,255,255,.1); }
+  .legend-good { background:rgba(255,215,64,.15); color:var(--gold); }
+  .legend-bad  { background:rgba(255,23,68,.15); color:#ff6090; }
 </style>
 </head>
 <body>
@@ -71,15 +59,14 @@
   </div>
   <canvas id="gameCanvas" width="520" height="230"></canvas>
 
-  <!-- START OVERLAY -->
   <div class="overlay" id="startOverlay">
     <div class="overlay-title">áCLUB<br>RUNNER</div>
     <div class="overlay-sub">🏙 КИЇВ КЛИЧЕ</div>
     <div class="tips">
       🍏 <b>Зелені яблука</b> — збирай (+10 очок)<br>
-      🍎 <b>Червоне яблуко</b> — +1 á-coin одразу (рідко!)<br>
-      ⚡ <b>Бустери</b> — підбирай, вони допомагають<br>
-      ☠️ <b>Дебустери</b> — обережно, вони шкодять<br>
+      🍎 <b>Червоне яблуко</b> — +1 á-coin (дуже рідко!)<br>
+      ✨ <b>Золотий вогник</b> — корисний бустер<br>
+      🔴 <b>Червоний вогник</b> — небезпечний дебустер<br>
       👾 <b>Босс на 1000</b> — перепригни і отримай +100
     </div>
     <div class="medals">
@@ -87,19 +74,18 @@
       <div class="medal medal-silver">🥈 15 á</div>
       <div class="medal medal-bronze">🥉 10 á</div>
     </div>
-    <div class="boost-list">
-      <div class="boost-item good">⏱ СЛОУМО</div>
-      <div class="boost-item good">✕3 СТРИБОК</div>
-      <div class="boost-item good">🛡 ЩИТ</div>
-      <div class="boost-item good">🧲 МАГНІТ</div>
-      <div class="boost-item bad">💀 1 ЖИТТЯ</div>
-      <div class="boost-item bad">⚡ ГІПЕРСПІД</div>
-      <div class="boost-item bad">🌀 ІНВЕРСІЯ</div>
+    <div class="legend">
+      <div class="legend-item legend-good">⏱ СЛОУМО</div>
+      <div class="legend-item legend-good">✕3 СТРИБОК</div>
+      <div class="legend-item legend-good">🛡 ЩИТ</div>
+      <div class="legend-item legend-good">🧲 МАГНІТ</div>
+      <div class="legend-item legend-bad">💀 1 ЖИТТЯ</div>
+      <div class="legend-item legend-bad">⚡ ГІПЕРСПІД</div>
+      <div class="legend-item legend-bad">🌀 ІНВЕРСІЯ</div>
     </div>
     <button class="btn btn-play" onclick="startGame()">▶ СТАРТ</button>
   </div>
 
-  <!-- GAME OVER OVERLAY -->
   <div class="overlay hidden" id="gameOverOverlay">
     <div class="overlay-title" id="goTitle">GAME OVER</div>
     <div class="overlay-score" id="goScore">0</div>
@@ -119,18 +105,20 @@ const WORKER_URL  = "https://aclub-runner.rjcnz-faw4.workers.dev";
 const canvas = document.getElementById('gameCanvas');
 const ctx    = canvas.getContext('2d');
 const W = 520, H = 230;
-const GROUND_Y = H - 44; // верх землі
+const GROUND_Y = H - 44;
 const PLAYER_H = 38;
-const FLOOR = GROUND_Y - PLAYER_H; // нижня позиція гравця
+const FLOOR = GROUND_Y - PLAYER_H;
 
 // ═══════════════════════════════════════════════════
 // СТАН ГРИ
 // ═══════════════════════════════════════════════════
 let state = 'idle';
 let score, lives, speed, frame, bestScore = 0;
-let obstacles, apples, boosters, particles, enemies;
+let obstacles, apples, boosters, particles, flyingEnemies;
 let bgOffset = 0, groundOffset = 0;
 let invincible = 0;
+
+// Бустери
 let shield = false, shieldTime = 0;
 let slowmo = false, slowmoTime = 0;
 let tripleJump = false, tripleJumpTime = 0;
@@ -138,14 +126,24 @@ let magnet = false, magnetTime = 0;
 let hyperspeed = false, hyperspeedTime = 0;
 let invert = false, invertTime = 0;
 let forcedOneLive = false, forcedOneLiveTime = 0;
+
+// Боси
+let boss = null;
 let bossActive = false, bossDefeated1000 = false, bossDefeated2000 = false;
+
+// Яблука
 let redAppleSpawned = false;
 let gameCount = parseInt(localStorage.getItem('aclub_games') || '0');
+
+// Таймери спавну
 let nextObstacle, nextApple, nextBooster, nextEnemy;
 let boostLabel = '';
 
+// Безпечна зона — координата правого краю останньої перешкоди
+let lastObstacleRight = 0;
+
 // ═══════════════════════════════════════════════════
-// ГРАВЕЦЬ — зелений чоловічок á-банку
+// ГРАВЕЦЬ
 // ═══════════════════════════════════════════════════
 const player = {
   x: 70, y: FLOOR, vy: 0,
@@ -154,12 +152,11 @@ const player = {
   maxJumps() { return tripleJump ? 3 : 2; },
 
   jump() {
-    const maxJ = this.maxJumps();
-    if (this.jumpCount < maxJ) {
+    if (this.jumpCount < this.maxJumps()) {
       this.vy = this.jumpCount === 0 ? -11 : (this.jumpCount === 1 ? -9 : -7);
       this.onGround = false;
       this.jumpCount++;
-      spawnParticles(this.x + 14, this.y + PLAYER_H, '#00e676', 6);
+      spawnParticles(this.x + 14, this.y + PLAYER_H, '#00e676', 5);
     }
   },
 
@@ -174,19 +171,15 @@ const player = {
     this.animTick++;
     if (this.animTick % 7 === 0) this.animFrame = (this.animFrame + 1) % 4;
     if (invincible > 0) invincible--;
-    if (shieldTime > 0)     { shieldTime--;     if (!shieldTime) { shield = false; boostLabel = ''; } }
-    if (slowmoTime > 0)     { slowmoTime--;      if (!slowmoTime) { slowmo = false; boostLabel = ''; } }
-    if (tripleJumpTime > 0) { tripleJumpTime--;  if (!tripleJumpTime) { tripleJump = false; boostLabel = ''; } }
-    if (magnetTime > 0)     { magnetTime--;      if (!magnetTime) { magnet = false; boostLabel = ''; } }
-    if (hyperspeedTime > 0) { hyperspeedTime--;  if (!hyperspeedTime) { hyperspeed = false; boostLabel = ''; } }
-    if (invertTime > 0)     { invertTime--;      if (!invertTime) { invert = false; boostLabel = ''; } }
-    if (forcedOneLiveTime > 0) {
-      forcedOneLiveTime--;
-      if (!forcedOneLiveTime) {
-        forcedOneLive = false; boostLabel = '';
-        if (lives < 3) { /* залишаємо як є */ }
-      }
-    }
+
+    // Таймери бустерів
+    if (shieldTime > 0)        { shieldTime--;        if (!shieldTime)        { shield = false;        boostLabel = ''; } }
+    if (slowmoTime > 0)        { slowmoTime--;         if (!slowmoTime)        { slowmo = false;         boostLabel = ''; } }
+    if (tripleJumpTime > 0)    { tripleJumpTime--;     if (!tripleJumpTime)    { tripleJump = false;     boostLabel = ''; } }
+    if (magnetTime > 0)        { magnetTime--;         if (!magnetTime)        { magnet = false;         boostLabel = ''; } }
+    if (hyperspeedTime > 0)    { hyperspeedTime--;     if (!hyperspeedTime)    { hyperspeed = false;     boostLabel = ''; } }
+    if (invertTime > 0)        { invertTime--;         if (!invertTime)        { invert = false;         boostLabel = ''; } }
+    if (forcedOneLiveTime > 0) { forcedOneLiveTime--;  if (!forcedOneLiveTime) { forcedOneLive = false;  boostLabel = ''; } }
   },
 
   draw() {
@@ -195,484 +188,542 @@ const player = {
     const run = this.onGround ? Math.sin(this.animFrame * Math.PI / 2) : 0;
 
     // Тінь
-    ctx.save(); ctx.globalAlpha = .25; ctx.fillStyle = '#000';
-    ctx.beginPath(); ctx.ellipse(px + 14, GROUND_Y + 2, 12, 3, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.save(); ctx.globalAlpha = .2; ctx.fillStyle = '#000';
+    ctx.beginPath(); ctx.ellipse(px+14, GROUND_Y+2, 12, 3, 0, 0, Math.PI*2); ctx.fill();
     ctx.restore();
 
     // Щит
     if (shield) {
-      ctx.save(); ctx.globalAlpha = .4;
+      ctx.save(); ctx.globalAlpha = .45;
       ctx.strokeStyle = '#00e5ff'; ctx.lineWidth = 3;
-      ctx.shadowColor = '#00e5ff'; ctx.shadowBlur = 12;
-      ctx.beginPath(); ctx.arc(px + 14, py + PLAYER_H/2, 22, 0, Math.PI * 2); ctx.stroke();
+      ctx.shadowColor = '#00e5ff'; ctx.shadowBlur = 14;
+      ctx.beginPath(); ctx.arc(px+14, py+PLAYER_H/2, 23, 0, Math.PI*2); ctx.stroke();
       ctx.restore();
     }
 
-    // ТІЛО — зелений стиль á-банку
+    const bodyColor  = invert ? '#ff1744' : '#00c853';
+    const darkColor  = invert ? '#c0003c' : '#004d40';
+    const limColor   = invert ? '#ff6090' : '#00a152';
+    const skinColor  = invert ? '#ff6090' : '#a5d6a7';
+    const hairColor  = invert ? '#c0003c' : '#00c853';
+
     // Ноги
-    ctx.fillStyle = invert ? '#ff6090' : '#00a152';
     const legOff = run * 5;
-    ctx.beginPath(); ctx.roundRect(px + 4,  py + 26, 9, 13 + legOff, 3); ctx.fill();
-    ctx.beginPath(); ctx.roundRect(px + 15, py + 26, 9, 13 - legOff, 3); ctx.fill();
+    ctx.fillStyle = limColor;
+    ctx.beginPath(); ctx.roundRect(px+4,  py+26, 9, 13+legOff, 3); ctx.fill();
+    ctx.beginPath(); ctx.roundRect(px+15, py+26, 9, 13-legOff, 3); ctx.fill();
     // Підошви
-    ctx.fillStyle = invert ? '#c0003c' : '#004d40';
-    ctx.beginPath(); ctx.roundRect(px + 2,  py + 37 + legOff, 13, 4, 2); ctx.fill();
-    ctx.beginPath(); ctx.roundRect(px + 13, py + 37 - legOff, 13, 4, 2); ctx.fill();
+    ctx.fillStyle = darkColor;
+    ctx.beginPath(); ctx.roundRect(px+2,  py+37+legOff, 13, 4, 2); ctx.fill();
+    ctx.beginPath(); ctx.roundRect(px+13, py+37-legOff, 13, 4, 2); ctx.fill();
     // Тулуб
-    ctx.fillStyle = invert ? '#ff1744' : '#00c853';
-    ctx.beginPath(); ctx.roundRect(px + 3, py + 12, 22, 18, 5); ctx.fill();
+    ctx.fillStyle = bodyColor;
+    ctx.beginPath(); ctx.roundRect(px+3, py+12, 22, 18, 5); ctx.fill();
     // Логотип á
-    ctx.fillStyle = invert ? '#c0003c' : '#004d40';
-    ctx.font = 'bold 11px Nunito'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillText('á', px + 14, py + 21);
+    ctx.fillStyle = darkColor;
+    ctx.font = 'bold 11px Nunito'; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText('á', px+14, py+21);
     // Руки
-    const armOff = this.onGround ? Math.cos(this.animFrame * Math.PI / 2) * 4 : -3;
-    ctx.fillStyle = invert ? '#ff6090' : '#00c853';
-    ctx.beginPath(); ctx.roundRect(px - 3, py + 13 + armOff, 7, 12, 3); ctx.fill();
-    ctx.beginPath(); ctx.roundRect(px + 24, py + 13 - armOff, 7, 12, 3); ctx.fill();
+    const armOff = this.onGround ? Math.cos(this.animFrame * Math.PI/2)*4 : -3;
+    ctx.fillStyle = bodyColor;
+    ctx.beginPath(); ctx.roundRect(px-3,  py+13+armOff, 7, 12, 3); ctx.fill();
+    ctx.beginPath(); ctx.roundRect(px+24, py+13-armOff, 7, 12, 3); ctx.fill();
     // Голова
-    ctx.fillStyle = invert ? '#ff6090' : '#a5d6a7';
-    ctx.beginPath(); ctx.roundRect(px + 4, py, 20, 16, 8); ctx.fill();
-    // Волосся / шапка á-банку
-    ctx.fillStyle = invert ? '#c0003c' : '#00c853';
-    ctx.beginPath(); ctx.roundRect(px + 3, py - 3, 22, 8, [6,6,0,0]); ctx.fill();
+    ctx.fillStyle = skinColor;
+    ctx.beginPath(); ctx.roundRect(px+4, py, 20, 16, 8); ctx.fill();
+    // Шапка
+    ctx.fillStyle = hairColor;
+    ctx.beginPath(); ctx.roundRect(px+3, py-3, 22, 8, [6,6,0,0]); ctx.fill();
     // Очі
     ctx.fillStyle = '#1a237e';
-    ctx.fillRect(px + 8, py + 5, 3, 3);
-    ctx.fillRect(px + 17, py + 5, 3, 3);
+    ctx.fillRect(px+8, py+5, 3, 3);
+    ctx.fillRect(px+17, py+5, 3, 3);
     // Посмішка
     ctx.strokeStyle = '#1a237e'; ctx.lineWidth = 1.5;
-    ctx.beginPath(); ctx.arc(px + 14, py + 11, 4, 0.2, Math.PI - 0.2); ctx.stroke();
+    ctx.beginPath(); ctx.arc(px+14, py+11, 4, 0.2, Math.PI-0.2); ctx.stroke();
   },
 
-  getBox() { return { x: this.x + 4, y: this.y + 2, w: 20, h: PLAYER_H - 2 }; }
+  getBox() { return { x:this.x+4, y:this.y+2, w:20, h:PLAYER_H-2 }; }
 };
 
 // ═══════════════════════════════════════════════════
-// ФОН — КИЇВСЬКИЙ СИЛУЕТ
+// БУДІВЛІ КИЄВА
 // ═══════════════════════════════════════════════════
-// Пам'ятки: Лавра, Арка, Хрещатик, Родіна-мати
 const KYIV_BUILDINGS = [
-  // [x, type] — будуть повторюватись
-  // Типи: 0=блок, 1=дзвіниця, 2=купол, 3=хмарочос, 4=арка, 5=родіна-мати
-  { w:40, h:55, t:'block', color:'#1e3a5f' },
-  { w:18, h:90, t:'tower', color:'#1a3550' },
-  { w:60, h:45, t:'block', color:'#162d42' },
-  { w:25, h:70, t:'dome',  color:'#1e3a5f' },
-  { w:35, h:50, t:'block', color:'#162d42' },
-  { w:15, h:110,t:'arch',  color:'#1a3550' },
-  { w:50, h:60, t:'block', color:'#1e3a5f' },
-  { w:22, h:80, t:'tower', color:'#162d42' },
-  { w:45, h:40, t:'block', color:'#1a3550' },
-  { w:30, h:95, t:'mother',color:'#1e3a5f' },
+  { w:44, h:58,  t:'block'  },
+  { w:18, h:92,  t:'tower'  },
+  { w:62, h:46,  t:'block'  },
+  { w:28, h:72,  t:'dome'   },
+  { w:36, h:52,  t:'block'  },
+  { w:16, h:112, t:'arch'   },
+  { w:52, h:62,  t:'block'  },
+  { w:22, h:82,  t:'tower'  },
+  { w:46, h:42,  t:'block'  },
+  { w:32, h:98,  t:'mother' },
 ];
 
-function drawBuilding(b, x) {
+function drawBuilding(b, x, alpha) {
   const by = GROUND_Y - b.h;
-  ctx.fillStyle = b.color;
+  ctx.save(); ctx.globalAlpha = alpha;
+
+  const shade = alpha > 0.6 ? '#0a1e30' : '#1e3a5f';
+  ctx.fillStyle = shade;
+
   if (b.t === 'block') {
     ctx.fillRect(x, by, b.w, b.h);
-    // вікна
-    ctx.fillStyle = 'rgba(255,220,100,.12)';
-    for (let wy = by + 6; wy < GROUND_Y - 6; wy += 10) {
-      for (let wx = x + 4; wx < x + b.w - 4; wx += 8) {
-        if (Math.random() > 0.4) ctx.fillRect(wx, wy, 4, 5);
-      }
-    }
+    ctx.fillStyle = 'rgba(255,220,100,.1)';
+    for (let wy = by+6; wy < GROUND_Y-6; wy += 10)
+      for (let wx = x+4; wx < x+b.w-4; wx += 8)
+        if ((wx*7+wy*3) % 11 > 4) ctx.fillRect(wx, wy, 4, 5);
   } else if (b.t === 'tower') {
-    ctx.fillRect(x + 4, by, b.w - 8, b.h);
-    ctx.beginPath(); ctx.moveTo(x, by + 5); ctx.lineTo(x + b.w/2, by - 15); ctx.lineTo(x + b.w, by + 5); ctx.fill();
+    ctx.fillRect(x+4, by, b.w-8, b.h);
+    ctx.beginPath(); ctx.moveTo(x, by+5); ctx.lineTo(x+b.w/2, by-15); ctx.lineTo(x+b.w, by+5); ctx.fill();
   } else if (b.t === 'dome') {
-    ctx.fillRect(x + 5, by + 20, b.w - 10, b.h - 20);
-    ctx.beginPath(); ctx.arc(x + b.w/2, by + 22, (b.w-10)/2, Math.PI, 0); ctx.fill();
-    // хрест
-    ctx.strokeStyle = '#2a5080'; ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.moveTo(x + b.w/2, by + 5); ctx.lineTo(x + b.w/2, by - 12); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(x + b.w/2 - 6, by - 5); ctx.lineTo(x + b.w/2 + 6, by - 5); ctx.stroke();
+    ctx.fillRect(x+5, by+20, b.w-10, b.h-20);
+    ctx.beginPath(); ctx.arc(x+b.w/2, by+22, (b.w-10)/2, Math.PI, 0); ctx.fill();
+    ctx.strokeStyle = alpha>0.6?'#1a3550':'#2a5080'; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.moveTo(x+b.w/2, by+5); ctx.lineTo(x+b.w/2, by-12); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x+b.w/2-6, by-5); ctx.lineTo(x+b.w/2+6, by-5); ctx.stroke();
   } else if (b.t === 'arch') {
     ctx.fillRect(x, by, 6, b.h);
-    ctx.fillRect(x + b.w - 6, by, 6, b.h);
-    ctx.beginPath(); ctx.arc(x + b.w/2, by, b.w/2, Math.PI, 0); ctx.fill();
+    ctx.fillRect(x+b.w-6, by, 6, b.h);
+    ctx.beginPath(); ctx.arc(x+b.w/2, by, b.w/2, Math.PI, 0); ctx.fill();
   } else if (b.t === 'mother') {
-    // Спрощена Батьківщина-мати
-    ctx.fillRect(x + 8, by + 40, 8, b.h - 40);
-    // фігура
-    ctx.fillStyle = '#2a4a6a';
-    ctx.beginPath(); ctx.moveTo(x+4, by+40); ctx.lineTo(x+12, by+15); ctx.lineTo(x+20, by+40); ctx.fill();
-    // голова
-    ctx.beginPath(); ctx.arc(x + 12, by + 12, 5, 0, Math.PI * 2); ctx.fill();
-    // меч
-    ctx.strokeStyle = '#3a6090'; ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.moveTo(x + 18, by + 20); ctx.lineTo(x + 28, by - 5); ctx.stroke();
+    ctx.fillRect(x+8, by+40, 8, b.h-40);
+    ctx.fillStyle = alpha>0.6?'#152840':'#2a4a6a';
+    ctx.beginPath(); ctx.moveTo(x+4,by+40); ctx.lineTo(x+12,by+15); ctx.lineTo(x+20,by+40); ctx.fill();
+    ctx.beginPath(); ctx.arc(x+12, by+12, 5, 0, Math.PI*2); ctx.fill();
+    ctx.strokeStyle=alpha>0.6?'#1a3550':'#3a6090'; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.moveTo(x+18,by+20); ctx.lineTo(x+28,by-5); ctx.stroke();
   }
+  ctx.restore();
 }
 
-// ═══════════════════════════════════════════════════
-// МАЛЮВАННЯ ФОНУ
-// ═══════════════════════════════════════════════════
 let buildingLayout = [];
 function initBuildingLayout() {
   buildingLayout = [];
   let bx = 0;
-  while (bx < W * 3) {
+  while (bx < W * 4) {
     const b = KYIV_BUILDINGS[Math.floor(Math.random() * KYIV_BUILDINGS.length)];
     buildingLayout.push({ ...b, ox: bx });
-    bx += b.w + Math.floor(Math.random() * 8);
+    bx += b.w + 4 + Math.floor(Math.random() * 6);
   }
 }
 
 function drawBackground() {
-  // Небо — нічний Київ
-  const skyGrad = ctx.createLinearGradient(0, 0, 0, GROUND_Y);
-  skyGrad.addColorStop(0, '#050d1a');
-  skyGrad.addColorStop(0.6, '#0d2137');
-  skyGrad.addColorStop(1, '#1a3a5c');
-  ctx.fillStyle = skyGrad; ctx.fillRect(0, 0, W, H);
+  // Небо
+  const skyG = ctx.createLinearGradient(0,0,0,GROUND_Y);
+  skyG.addColorStop(0,'#050d1a'); skyG.addColorStop(0.6,'#0d2137'); skyG.addColorStop(1,'#1a3a5c');
+  ctx.fillStyle = skyG; ctx.fillRect(0,0,W,H);
 
-  // Зірки (статичні)
-  ctx.fillStyle = 'rgba(255,255,255,.6)';
-  for (let i = 0; i < 40; i++) {
-    const sx = ((i * 67 + bgOffset * 0.05) % W + W) % W;
-    const sy = (i * 29) % (GROUND_Y * 0.6);
-    const ss = (i % 3) * 0.4 + 0.3;
-    ctx.beginPath(); ctx.arc(sx, sy, ss, 0, Math.PI * 2); ctx.fill();
+  // Зірки
+  ctx.fillStyle = 'rgba(255,255,255,.55)';
+  for (let i=0; i<40; i++) {
+    const sx = ((i*67 + bgOffset*0.05) % W + W) % W;
+    const sy = (i*29) % (GROUND_Y*0.6);
+    const ss = (i%3)*0.4+0.3;
+    ctx.beginPath(); ctx.arc(sx,sy,ss,0,Math.PI*2); ctx.fill();
   }
 
   // Місяць
-  ctx.fillStyle = '#fffde7';
-  ctx.save(); ctx.shadowColor = '#fffde7'; ctx.shadowBlur = 20;
-  ctx.beginPath(); ctx.arc(W - 55, 28, 16, 0, Math.PI * 2); ctx.fill();
-  ctx.fillStyle = '#0d2137';
-  ctx.beginPath(); ctx.arc(W - 49, 24, 12, 0, Math.PI * 2); ctx.fill();
+  ctx.save(); ctx.shadowColor='#fffde7'; ctx.shadowBlur=20;
+  ctx.fillStyle='#fffde7'; ctx.beginPath(); ctx.arc(W-55,28,16,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#0d2137'; ctx.beginPath(); ctx.arc(W-49,24,12,0,Math.PI*2); ctx.fill();
   ctx.restore();
 
-  // Будівлі (2 шари паралакс)
-  ctx.save(); ctx.globalAlpha = 0.5;
-  const bg2 = (bgOffset * 0.3) % (W * 3);
+  // Дальній план будівель
+  const bg2 = (bgOffset*0.28) % (W*4);
   for (const b of buildingLayout) {
-    const bx = ((b.ox - bg2) % (W * 3) + W * 3) % (W * 3) - W * 0.5;
-    if (bx > -100 && bx < W + 100) drawBuilding(b, bx);
+    const bx = ((b.ox - bg2) % (W*4) + W*4) % (W*4) - W*0.5;
+    if (bx > -120 && bx < W+120) drawBuilding(b, bx, 0.45);
   }
-  ctx.restore();
 
-  // Будівлі ближнього плану (темніші, швидші)
-  ctx.save(); ctx.globalAlpha = 0.8;
-  const bg1 = (bgOffset * 0.6) % (W * 3);
-  for (let i = 0; i < buildingLayout.length; i += 2) {
+  // Ближній план будівель
+  const bg1 = (bgOffset*0.55) % (W*4);
+  for (let i=0; i<buildingLayout.length; i+=2) {
     const b = buildingLayout[i];
-    const bx = ((b.ox - bg1) % (W * 3) + W * 3) % (W * 3) - W * 0.5;
-    if (bx > -100 && bx < W + 100) {
-      ctx.fillStyle = '#0a1e30';
-      const by2 = GROUND_Y - b.h * 0.7;
-      ctx.fillRect(bx, by2, b.w, b.h * 0.7);
-    }
+    const bx = ((b.ox - bg1) % (W*4) + W*4) % (W*4) - W*0.5;
+    if (bx > -120 && bx < W+120) drawBuilding(b, bx, 0.82);
   }
-  ctx.restore();
 
-  // Земля — бруківка
-  const groundGrad = ctx.createLinearGradient(0, GROUND_Y, 0, H);
-  groundGrad.addColorStop(0, '#1a3a1a');
-  groundGrad.addColorStop(1, '#0a1a0a');
-  ctx.fillStyle = groundGrad; ctx.fillRect(0, GROUND_Y, W, H - GROUND_Y);
+  // Земля
+  const gG = ctx.createLinearGradient(0,GROUND_Y,0,H);
+  gG.addColorStop(0,'#1a3a1a'); gG.addColorStop(1,'#0a1a0a');
+  ctx.fillStyle=gG; ctx.fillRect(0,GROUND_Y,W,H-GROUND_Y);
 
-  // Лінія підсвітки á-зеленим
-  ctx.save();
-  ctx.strokeStyle = '#00c853'; ctx.lineWidth = 2;
-  ctx.shadowColor = '#00c853'; ctx.shadowBlur = 8;
-  ctx.beginPath(); ctx.moveTo(0, GROUND_Y); ctx.lineTo(W, GROUND_Y); ctx.stroke();
+  // Лінія підсвітки
+  ctx.save(); ctx.strokeStyle='#00c853'; ctx.lineWidth=2;
+  ctx.shadowColor='#00c853'; ctx.shadowBlur=8;
+  ctx.beginPath(); ctx.moveTo(0,GROUND_Y); ctx.lineTo(W,GROUND_Y); ctx.stroke();
   ctx.restore();
 
   // Бруківка
-  ctx.strokeStyle = 'rgba(0,200,83,.1)'; ctx.lineWidth = 1;
-  const tileW = 48, go = groundOffset % tileW;
-  for (let gx = -go; gx < W; gx += tileW) {
-    ctx.beginPath(); ctx.moveTo(gx, GROUND_Y); ctx.lineTo(gx, H); ctx.stroke();
-  }
-  ctx.strokeStyle = 'rgba(0,200,83,.05)';
-  ctx.beginPath(); ctx.moveTo(0, GROUND_Y + 12); ctx.lineTo(W, GROUND_Y + 12); ctx.stroke();
+  ctx.strokeStyle='rgba(0,200,83,.1)'; ctx.lineWidth=1;
+  const tileW=48, go=groundOffset%tileW;
+  for (let gx=-go; gx<W; gx+=tileW) { ctx.beginPath(); ctx.moveTo(gx,GROUND_Y); ctx.lineTo(gx,H); ctx.stroke(); }
+  ctx.strokeStyle='rgba(0,200,83,.05)';
+  ctx.beginPath(); ctx.moveTo(0,GROUND_Y+12); ctx.lineTo(W,GROUND_Y+12); ctx.stroke();
 }
 
 // ═══════════════════════════════════════════════════
-// ПЕРЕШКОДИ
+// ПЕРЕШКОДИ — яскравіші, помітніші
 // ═══════════════════════════════════════════════════
 const OBS_TYPES = [
   {
-    id:'cone', w:20, h:30,
-    draw(x,y,w,h){
+    id:'cone', w:22, h:32,
+    draw(x,y,w,h) {
+      // Помаранчевий конус з чіткими смугами
       ctx.fillStyle='#ff6f00';
       ctx.beginPath(); ctx.moveTo(x,y+h); ctx.lineTo(x+w/2,y); ctx.lineTo(x+w,y+h); ctx.fill();
-      ctx.fillStyle='#fff'; ctx.fillRect(x+2,y+h*0.35,w-4,3); ctx.fillRect(x+2,y+h*0.65,w-4,3);
+      ctx.fillStyle='#ffcc02';
+      ctx.beginPath(); ctx.moveTo(x+4,y+h*0.85); ctx.lineTo(x+w/2,y+h*0.2); ctx.lineTo(x+w-4,y+h*0.85); ctx.fill();
+      ctx.fillStyle='#fff'; ctx.globalAlpha=.85;
+      ctx.fillRect(x+3,y+h*0.38,w-6,3); ctx.fillRect(x+5,y+h*0.62,w-10,3);
+      ctx.globalAlpha=1;
+      // Основа
+      ctx.fillStyle='#e65100'; ctx.beginPath(); ctx.roundRect(x-2,y+h-4,w+4,4,2); ctx.fill();
     }
   },
   {
-    id:'barrier', w:14, h:42,
-    draw(x,y,w,h){
-      ctx.fillStyle='#b71c1c';
+    id:'barrier', w:16, h:46,
+    draw(x,y,w,h) {
+      // Жовто-червоний бар'єр
+      ctx.fillStyle='#d32f2f';
       ctx.beginPath(); ctx.roundRect(x+4,y,w-8,h,3); ctx.fill();
-      ctx.fillStyle='#fff'; ctx.fillRect(x+3,y+10,w-6,4); ctx.fillRect(x+3,y+26,w-6,4);
-      ctx.fillStyle='#ffd740'; ctx.beginPath(); ctx.arc(x+w/2,y+6,4,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle='#ffeb3b';
+      ctx.fillRect(x+3,y+8,w-6,5); ctx.fillRect(x+3,y+22,w-6,5); ctx.fillRect(x+3,y+36,w-6,5);
+      ctx.fillStyle='#ffd740';
+      ctx.save(); ctx.shadowColor='#ffd740'; ctx.shadowBlur=8;
+      ctx.beginPath(); ctx.arc(x+w/2,y+5,5,0,Math.PI*2); ctx.fill();
+      ctx.restore();
+      ctx.fillStyle='#333'; ctx.beginPath(); ctx.arc(x+w/2,y+5,2,0,Math.PI*2); ctx.fill();
     }
   },
   {
-    id:'pit', w:44, h:10, isPit:true,
-    draw(x,y,w,h){
+    id:'pit', w:50, h:10, isPit:true,
+    draw(x,y,w,h) {
+      // Яма з яскравими шипами
       ctx.fillStyle='#000a00';
-      ctx.beginPath(); ctx.roundRect(x,GROUND_Y,w,H-GROUND_Y,0); ctx.fill();
-      ctx.fillStyle='#001400';
-      ctx.fillRect(x,GROUND_Y-2,w,4);
-      // Небезпечні шипи
-      ctx.fillStyle='#880000';
-      for(let sx=x+4;sx<x+w-4;sx+=8){
-        ctx.beginPath(); ctx.moveTo(sx,GROUND_Y+4); ctx.lineTo(sx+4,GROUND_Y+14); ctx.lineTo(sx+8,GROUND_Y+4); ctx.fill();
+      ctx.fillRect(x, GROUND_Y, w, H-GROUND_Y);
+      // Попереджувальна лінія
+      ctx.fillStyle='#ff1744'; ctx.fillRect(x,GROUND_Y-3,w,3);
+      // Шипи
+      ctx.fillStyle='#b71c1c';
+      for (let sx=x+3; sx<x+w-3; sx+=9) {
+        ctx.beginPath(); ctx.moveTo(sx,GROUND_Y+3); ctx.lineTo(sx+4.5,GROUND_Y+16); ctx.lineTo(sx+9,GROUND_Y+3); ctx.fill();
+      }
+      ctx.fillStyle='#e53935';
+      for (let sx=x+3; sx<x+w-3; sx+=9) {
+        ctx.beginPath(); ctx.moveTo(sx+1,GROUND_Y+3); ctx.lineTo(sx+4.5,GROUND_Y+12); ctx.lineTo(sx+8,GROUND_Y+3); ctx.fill();
       }
     }
   },
   {
-    id:'box', w:28, h:28,
-    draw(x,y,w,h){
+    id:'box', w:30, h:30,
+    draw(x,y,w,h) {
       ctx.fillStyle='#e65100';
-      ctx.beginPath(); ctx.roundRect(x,y,w,h,3); ctx.fill();
+      ctx.beginPath(); ctx.roundRect(x,y,w,h,4); ctx.fill();
+      ctx.fillStyle='#ff8f00';
+      ctx.beginPath(); ctx.roundRect(x+2,y+2,w-4,h/2-3,3); ctx.fill();
       ctx.fillStyle='#bf360c';
       ctx.fillRect(x,y+h/2-2,w,4); ctx.fillRect(x+w/2-2,y,4,h);
-      ctx.fillStyle='#ff8f00'; ctx.beginPath(); ctx.roundRect(x+2,y+2,w-4,h/2-4,2); ctx.fill();
+      ctx.strokeStyle='#ffcc02'; ctx.lineWidth=1.5;
+      ctx.beginPath(); ctx.roundRect(x+1,y+1,w-2,h-2,3); ctx.stroke();
     }
   },
   {
-    id:'spike', w:24, h:34,
-    draw(x,y,w,h){
-      ctx.fillStyle='#6a1b9a';
+    id:'spike', w:26, h:36,
+    draw(x,y,w,h) {
+      ctx.fillStyle='#4a148c';
       ctx.beginPath(); ctx.moveTo(x,y+h); ctx.lineTo(x+w/2,y); ctx.lineTo(x+w,y+h); ctx.fill();
-      ctx.fillStyle='#9c27b0'; ctx.beginPath(); ctx.roundRect(x+4,y+h*0.5,w-8,h*0.5,2); ctx.fill();
+      ctx.fillStyle='#9c27b0';
+      ctx.beginPath(); ctx.moveTo(x+5,y+h); ctx.lineTo(x+w/2,y+6); ctx.lineTo(x+w-5,y+h); ctx.fill();
+      ctx.fillStyle='#ce93d8';
+      ctx.beginPath(); ctx.moveTo(x+10,y+h); ctx.lineTo(x+w/2,y+14); ctx.lineTo(x+w-10,y+h); ctx.fill();
+      ctx.strokeStyle='#e040fb'; ctx.lineWidth=1;
+      ctx.beginPath(); ctx.moveTo(x,y+h); ctx.lineTo(x+w/2,y); ctx.lineTo(x+w,y+h); ctx.stroke();
     }
   },
 ];
 
+// ═══════════════════════════════════════════════════
+// БЕЗПЕЧНИЙ СПАВН ПЕРЕШКОД
+// ═══════════════════════════════════════════════════
 function spawnObstacle() {
-  const dt = OBS_TYPES[Math.floor(Math.random() * OBS_TYPES.length)];
-  const gap = Math.max(160, 260 - Math.floor(score / 50) * 8);
-  const h = dt.h;
-  const y = dt.isPit ? GROUND_Y : GROUND_Y - h;
-  obstacles.push({ ...dt, x: W + 30, y, origW: dt.w });
+  // Вибираємо тип
+  // Ями тільки після 200 очок
+  const available = score < 200
+    ? OBS_TYPES.filter(t => !t.isPit)
+    : OBS_TYPES;
+  const dt = available[Math.floor(Math.random() * available.length)];
+  const y  = dt.isPit ? GROUND_Y : GROUND_Y - dt.h;
+  obstacles.push({ ...dt, x: W + 30, y });
+  lastObstacleRight = W + 30 + dt.w;
 }
 
-function drawObstacles() {
-  for (const o of obstacles) o.draw(o.x, o.y, o.w, o.h);
+function calcObstacleGap() {
+  // Безпечний інтервал в пікселях між перешкодами
+  // При швидкості S гравець може стрибнути на ~220 пікселів
+  // Мінімум 240px, щоб завжди був час відреагувати
+  const minPx  = 260;
+  const extraPx = Math.max(0, 180 - Math.floor(score / 80) * 10);
+  return minPx + extraPx + Math.floor(Math.random() * 80);
 }
 
 // ═══════════════════════════════════════════════════
-// ВОРОГИ (стрілянина)
+// ЛЕТЮЧІ ВОРОГИ — з'являються після 500 очок
+// НЕ СТРІЛЯЮТЬ, тільки літають
 // ═══════════════════════════════════════════════════
-function spawnShooter() {
-  const ey = GROUND_Y - 50 - Math.floor(Math.random() * 2) * 22;
-  enemies.push({ x: W + 30, y: ey, w: 30, h: 24, type: 'shooter', bullets: [], shootTimer: 60, wingAnim: 0, passed: false });
+function spawnFlyingEnemy() {
+  // Рівень польоту — вище перешкод, щоб не накладались
+  const ey = GROUND_Y - 55 - Math.floor(Math.random() * 2) * 24;
+  flyingEnemies.push({ x: W+30, y: ey, w:32, h:22, wingAnim:0, passed:false });
 }
 
-function drawShooter(e) {
+function drawFlyingEnemy(e) {
   e.wingAnim++;
-  const px = e.x, py = e.y;
-  const flap = Math.sin(e.wingAnim * 0.12) * 7;
+  const px=e.x, py=e.y;
+  const flap = Math.sin(e.wingAnim*0.14)*8;
 
-  ctx.fillStyle = '#b71c1c';
-  ctx.beginPath(); ctx.ellipse(px + 15, py + 12, 13, 8, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle='#b71c1c';
+  ctx.beginPath(); ctx.ellipse(px+16,py+12,14,8,0,0,Math.PI*2); ctx.fill();
 
-  ctx.fillStyle = '#e53935';
-  ctx.beginPath(); ctx.moveTo(px+15,py+7); ctx.quadraticCurveTo(px-2,py-8+flap,px-6,py+4);
-  ctx.quadraticCurveTo(px+7,py+8,px+15,py+7); ctx.fill();
-  ctx.beginPath(); ctx.moveTo(px+15,py+7); ctx.quadraticCurveTo(px+32,py-8+flap,px+36,py+4);
-  ctx.quadraticCurveTo(px+23,py+8,px+15,py+7); ctx.fill();
+  ctx.fillStyle='#e53935';
+  ctx.beginPath();
+  ctx.moveTo(px+16,py+7);
+  ctx.quadraticCurveTo(px-2,py-9+flap,px-6,py+4);
+  ctx.quadraticCurveTo(px+8,py+9,px+16,py+7); ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(px+16,py+7);
+  ctx.quadraticCurveTo(px+34,py-9+flap,px+38,py+4);
+  ctx.quadraticCurveTo(px+24,py+9,px+16,py+7); ctx.fill();
 
   // Очі
-  ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(px+11,py+10,3,0,Math.PI*2); ctx.fill();
-  ctx.beginPath(); ctx.arc(px+20,py+10,3,0,Math.PI*2); ctx.fill();
-  ctx.fillStyle='#b71c1c'; ctx.beginPath(); ctx.arc(px+12,py+10,1.5,0,Math.PI*2); ctx.fill();
-  ctx.beginPath(); ctx.arc(px+21,py+10,1.5,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#fff';
+  ctx.beginPath(); ctx.arc(px+11,py+11,3,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(px+21,py+11,3,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#b71c1c';
+  ctx.beginPath(); ctx.arc(px+12,py+11,1.5,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(px+22,py+11,1.5,0,Math.PI*2); ctx.fill();
 
-  // Куля в дорозі
-  for (const b of e.bullets) {
-    ctx.fillStyle = '#ff1744';
-    ctx.save(); ctx.shadowColor='#ff1744'; ctx.shadowBlur=6;
-    ctx.beginPath(); ctx.arc(b.x, b.y, 4, 0, Math.PI*2); ctx.fill();
+  // Попередження тільки якщо близько
+  if (e.x < W-10 && e.x > 60) {
+    ctx.save();
+    ctx.globalAlpha = 0.6 + Math.sin(e.wingAnim*0.25)*0.3;
+    ctx.fillStyle='#ff5252';
+    ctx.font='9px "Press Start 2P"';
+    ctx.textAlign='center';
+    ctx.fillText('▲', px+16, py-6);
     ctx.restore();
   }
 }
 
 // ═══════════════════════════════════════════════════
-// БОС
+// БОС — ЄДИНИЙ ХТО СТРІЛЯЄ
 // ═══════════════════════════════════════════════════
-let boss = null;
+let bossBullets = [];
 
 function spawnBoss(level) {
   bossActive = true;
+  bossBullets = [];
   const hp = level === 1 ? 3 : 5;
-  boss = { x: W + 60, y: GROUND_Y - 70, w: 60, h: 70, hp, maxHp: hp, level, anim: 0, phase: 'enter', vx: -1.5, passed: false };
+  boss = {
+    x: W+60, y: GROUND_Y-70, w:60, h:70,
+    hp, maxHp:hp, level,
+    anim:0, phase:'enter', vx:-1.5, passed:false,
+    shootTimer: 120
+  };
   spawnParticles(W/2, H/2, '#ff1744', 20);
 }
 
 function drawBoss() {
   if (!boss) return;
   boss.anim++;
-  const px = boss.x, py = boss.y;
-  const bob = Math.sin(boss.anim * 0.05) * 4;
+  const px=boss.x, py=boss.y;
+  const bob = Math.sin(boss.anim*0.05)*4;
+  const bColor = boss.level===1 ? '#880000' : '#4a0080';
 
-  // Тіло боса
-  const bColor = boss.level === 1 ? '#880000' : '#4a0080';
-  ctx.fillStyle = bColor;
-  ctx.beginPath(); ctx.roundRect(px, py + bob, boss.w, boss.h, 8); ctx.fill();
+  ctx.fillStyle=bColor;
+  ctx.beginPath(); ctx.roundRect(px, py+bob, boss.w, boss.h, 8); ctx.fill();
 
-  // Морда
-  ctx.fillStyle = boss.level === 1 ? '#c62828' : '#7b1fa2';
-  ctx.beginPath(); ctx.roundRect(px+8, py+10+bob, boss.w-16, boss.h-20, 6); ctx.fill();
+  ctx.fillStyle=boss.level===1?'#c62828':'#7b1fa2';
+  ctx.beginPath(); ctx.roundRect(px+8,py+10+bob,boss.w-16,boss.h-20,6); ctx.fill();
 
   // Очі
-  ctx.fillStyle = '#ff1744';
-  ctx.save(); ctx.shadowColor='#ff1744'; ctx.shadowBlur=10;
-  ctx.beginPath(); ctx.arc(px+18, py+25+bob, 7, 0, Math.PI*2); ctx.fill();
-  ctx.beginPath(); ctx.arc(px+42, py+25+bob, 7, 0, Math.PI*2); ctx.fill();
+  ctx.save(); ctx.shadowColor='#ff1744'; ctx.shadowBlur=12;
+  ctx.fillStyle='#ff1744';
+  ctx.beginPath(); ctx.arc(px+18,py+26+bob,7,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(px+42,py+26+bob,7,0,Math.PI*2); ctx.fill();
   ctx.restore();
   ctx.fillStyle='#fff';
-  ctx.beginPath(); ctx.arc(px+20,py+25+bob,3,0,Math.PI*2); ctx.fill();
-  ctx.beginPath(); ctx.arc(px+44,py+25+bob,3,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(px+20,py+26+bob,3,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(px+44,py+26+bob,3,0,Math.PI*2); ctx.fill();
 
   // Роги
-  ctx.fillStyle = bColor;
-  ctx.beginPath(); ctx.moveTo(px+10, py+bob); ctx.lineTo(px+5, py-14+bob); ctx.lineTo(px+20, py+bob); ctx.fill();
-  ctx.beginPath(); ctx.moveTo(px+boss.w-10, py+bob); ctx.lineTo(px+boss.w-5, py-14+bob); ctx.lineTo(px+boss.w-20, py+bob); ctx.fill();
+  ctx.fillStyle=bColor;
+  ctx.beginPath(); ctx.moveTo(px+10,py+bob); ctx.lineTo(px+5,py-14+bob); ctx.lineTo(px+20,py+bob); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(px+boss.w-10,py+bob); ctx.lineTo(px+boss.w-5,py-14+bob); ctx.lineTo(px+boss.w-20,py+bob); ctx.fill();
 
   // HP бар
-  const barW = boss.w + 20;
-  ctx.fillStyle = '#333'; ctx.beginPath(); ctx.roundRect(px-10, py+bob-12, barW, 6, 3); ctx.fill();
-  ctx.fillStyle = '#ff1744';
-  ctx.beginPath(); ctx.roundRect(px-10, py+bob-12, barW * (boss.hp / boss.maxHp), 6, 3); ctx.fill();
+  const barW=boss.w+20;
+  ctx.fillStyle='#222'; ctx.beginPath(); ctx.roundRect(px-10,py+bob-14,barW,7,3); ctx.fill();
+  ctx.fillStyle='#ff1744'; ctx.beginPath(); ctx.roundRect(px-10,py+bob-14,barW*(boss.hp/boss.maxHp),7,3); ctx.fill();
   ctx.fillStyle='#fff'; ctx.font='bold 8px Nunito'; ctx.textAlign='center';
-  ctx.fillText(`BOSS ${boss.level === 1 ? '👾' : '👹'}  HP: ${boss.hp}/${boss.maxHp}`, px+boss.w/2, py+bob-16);
+  ctx.fillText(`👾 BOSS  HP:${boss.hp}/${boss.maxHp}`, px+boss.w/2, py+bob-17);
+
+  // Кулі боса
+  for (const b of bossBullets) {
+    ctx.save();
+    ctx.fillStyle='#ff1744';
+    ctx.shadowColor='#ff1744'; ctx.shadowBlur=8;
+    ctx.beginPath(); ctx.arc(b.x,b.y,5,0,Math.PI*2); ctx.fill();
+    ctx.restore();
+  }
 }
 
 // ═══════════════════════════════════════════════════
 // ЯБЛУКА
 // ═══════════════════════════════════════════════════
-function spawnApple(forceRed = false) {
+function spawnApple(forceRed=false) {
   const floating = Math.random() < 0.55;
-  const ay = floating ? GROUND_Y - 24 - Math.floor(Math.random() * 3) * 22 : GROUND_Y - 16;
-  const isRed = forceRed || (!redAppleSpawned && gameCount > 0 && gameCount % 50 === 0 && score >= 500);
+  const ay = floating ? GROUND_Y-26-Math.floor(Math.random()*3)*22 : GROUND_Y-18;
+  const isRed = forceRed || (!redAppleSpawned && gameCount>0 && gameCount%50===0 && score>=500);
   if (isRed) redAppleSpawned = true;
-  apples.push({ x: W + 20, y: ay, r: 9, isRed, collected: false, anim: 0 });
+  apples.push({ x:W+20, y:ay, r:9, isRed, collected:false, anim:0 });
 }
 
 function drawApple(a) {
   a.anim++;
-  const bob = Math.sin(a.anim * 0.07) * 2;
-  ctx.save();
-  ctx.translate(a.x, a.y + bob);
+  const bob = Math.sin(a.anim*0.07)*2;
+  ctx.save(); ctx.translate(a.x, a.y+bob);
 
-  if (a.isRed) {
-    ctx.save(); ctx.shadowColor='#ff1744'; ctx.shadowBlur=15; ctx.restore();
-  }
+  if (a.isRed) { ctx.shadowColor='#ff1744'; ctx.shadowBlur=16; }
 
-  // Яблуко
   ctx.fillStyle = a.isRed ? '#e53935' : '#43a047';
-  ctx.beginPath(); ctx.arc(0, 0, a.r, 0, Math.PI*2); ctx.fill();
-  // Блик
+  ctx.beginPath(); ctx.arc(0,0,a.r,0,Math.PI*2); ctx.fill();
   ctx.fillStyle = a.isRed ? '#ef9a9a' : '#a5d6a7';
-  ctx.beginPath(); ctx.ellipse(-2, -3, 3, 4, -0.4, 0, Math.PI*2); ctx.fill();
-  // Стебло
-  ctx.strokeStyle = '#5d4037'; ctx.lineWidth = 1.5;
-  ctx.beginPath(); ctx.moveTo(0, -a.r); ctx.quadraticCurveTo(4, -a.r-6, 2, -a.r-10); ctx.stroke();
-  // Листок
-  ctx.fillStyle = '#2e7d32';
-  ctx.beginPath(); ctx.ellipse(4, -a.r-5, 4, 2, 0.5, 0, Math.PI*2); ctx.fill();
-
+  ctx.beginPath(); ctx.ellipse(-2,-3,3,4,-0.4,0,Math.PI*2); ctx.fill();
+  ctx.strokeStyle='#5d4037'; ctx.lineWidth=1.5;
+  ctx.beginPath(); ctx.moveTo(0,-a.r); ctx.quadraticCurveTo(4,-a.r-6,2,-a.r-10); ctx.stroke();
+  ctx.fillStyle='#2e7d32';
+  ctx.beginPath(); ctx.ellipse(4,-a.r-5,4,2,0.5,0,Math.PI*2); ctx.fill();
   if (a.isRed) {
     ctx.fillStyle='#ff8a80'; ctx.font='bold 7px Nunito'; ctx.textAlign='center';
-    ctx.fillText('+1á', 0, a.r + 10);
+    ctx.fillText('+1á', 0, a.r+10);
   }
-
   ctx.restore();
 }
 
 // ═══════════════════════════════════════════════════
-// БУСТЕРИ / ДЕБУСТЕРИ
+// БУСТЕРИ — ЗОЛОТІ, ДЕБУСТЕРИ — ЧЕРВОНІ ВОГНИКИ
 // ═══════════════════════════════════════════════════
-const BOOST_TYPES = [
-  { id:'slowmo',    label:'⏱ СЛОУМО',    color:'#00e5ff', good:true,  dur:300 },
-  { id:'triple',    label:'✕3 СТРИБОК',  color:'#69f0ae', good:true,  dur:400 },
-  { id:'shield',    label:'🛡 ЩИТ',      color:'#40c4ff', good:true,  dur:350 },
-  { id:'magnet',    label:'🧲 МАГНІТ',   color:'#ea80fc', good:true,  dur:350 },
-  { id:'hyperspd',  label:'⚡ ГІПЕРСПІД',color:'#ff6d00', good:false, dur:250 },
-  { id:'onelive',   label:'💀 1 ЖИТТЯ',  color:'#ff1744', good:false, dur:300 },
-  { id:'invert',    label:'🌀 ІНВЕРСІЯ', color:'#e040fb', good:false, dur:200 },
+const BOOST_DEFS = [
+  { id:'slowmo',   label:'⏱ СЛОУМО',    good:true,  dur:320 },
+  { id:'triple',   label:'✕3 СТРИБОК',  good:true,  dur:420 },
+  { id:'shield',   label:'🛡 ЩИТ',      good:true,  dur:370 },
+  { id:'magnet',   label:'🧲 МАГНІТ',   good:true,  dur:370 },
+  { id:'hyperspd', label:'⚡ ГІПЕРСПІД', good:false, dur:260 },
+  { id:'onelive',  label:'💀 1 ЖИТТЯ',  good:false, dur:320 },
+  { id:'invert',   label:'🌀 ІНВЕРСІЯ', good:false, dur:210 },
 ];
 
 function spawnBooster() {
-  const bt = BOOST_TYPES[Math.floor(Math.random() * BOOST_TYPES.length)];
-  const ay = GROUND_Y - 28 - Math.floor(Math.random() * 2) * 20;
-  boosters.push({ ...bt, x: W + 20, y: ay, r: 10, collected: false, anim: 0 });
+  const bt = BOOST_DEFS[Math.floor(Math.random()*BOOST_DEFS.length)];
+  // Завжди спавнимо у повітрі, щоб не накладатись з перешкодами
+  const ay = GROUND_Y - 38 - Math.floor(Math.random()*2)*22;
+  boosters.push({ ...bt, x:W+20, y:ay, r:11, collected:false, anim:0 });
 }
 
 function drawBooster(b) {
   b.anim++;
-  const bob = Math.sin(b.anim * 0.08) * 3;
-  const pulse = 0.85 + Math.sin(b.anim * 0.1) * 0.15;
+  const t   = b.anim;
+  const bob = Math.sin(t*0.08)*3;
+  // Частинки вогню навколо
+  const nParticles = 6;
+  for (let i=0; i<nParticles; i++) {
+    const angle = (i/nParticles)*Math.PI*2 + t*0.05;
+    const r = b.r + 5 + Math.sin(t*0.15+i)*3;
+    const px2 = b.x + Math.cos(angle)*r;
+    const py2 = b.y + bob + Math.sin(angle)*r;
+    ctx.save();
+    ctx.globalAlpha = 0.35 + Math.sin(t*0.1+i)*0.2;
+    ctx.fillStyle = b.good ? '#ffd740' : '#ff1744';
+    ctx.beginPath(); ctx.arc(px2,py2,2.5,0,Math.PI*2); ctx.fill();
+    ctx.restore();
+  }
+
+  // Ядро вогника
   ctx.save();
-  ctx.translate(b.x, b.y + bob);
-  ctx.scale(pulse, pulse);
-  ctx.shadowColor = b.color; ctx.shadowBlur = 12;
-  ctx.fillStyle = b.good ? 'rgba(0,200,83,.2)' : 'rgba(255,23,68,.2)';
-  ctx.beginPath(); ctx.arc(0, 0, b.r + 4, 0, Math.PI*2); ctx.fill();
-  ctx.fillStyle = b.color;
-  ctx.beginPath(); ctx.arc(0, 0, b.r, 0, Math.PI*2); ctx.fill();
-  ctx.fillStyle='#fff'; ctx.font='bold 9px Nunito'; ctx.textAlign='center'; ctx.textBaseline='middle';
-  ctx.fillText(b.id === 'slowmo' ? '⏱' : b.id === 'triple' ? '3↑' : b.id === 'shield' ? '🛡' : b.id === 'magnet' ? '🧲' : b.id === 'hyperspd' ? '⚡' : b.id === 'onelive' ? '💀' : '🌀', 0, 0);
+  ctx.translate(b.x, b.y+bob);
+  const pulse = 0.88 + Math.sin(t*0.12)*0.12;
+  ctx.scale(pulse,pulse);
+
+  // Зовнішнє сяйво
+  const glow = ctx.createRadialGradient(0,0,b.r*0.3,0,0,b.r*1.8);
+  if (b.good) {
+    glow.addColorStop(0,'rgba(255,215,64,.7)');
+    glow.addColorStop(1,'rgba(255,215,64,0)');
+  } else {
+    glow.addColorStop(0,'rgba(255,23,68,.6)');
+    glow.addColorStop(1,'rgba(255,23,68,0)');
+  }
+  ctx.fillStyle=glow;
+  ctx.beginPath(); ctx.arc(0,0,b.r*1.8,0,Math.PI*2); ctx.fill();
+
+  // Сам вогник — крапля
+  ctx.fillStyle = b.good ? '#ffd740' : '#ff1744';
+  ctx.shadowColor = b.good ? '#ffd740' : '#ff1744';
+  ctx.shadowBlur = 14;
+  ctx.beginPath();
+  ctx.moveTo(0,-b.r*1.3); // верхівка
+  ctx.bezierCurveTo(b.r*0.8,-b.r*0.6, b.r*0.9,b.r*0.4, 0,b.r);
+  ctx.bezierCurveTo(-b.r*0.9,b.r*0.4, -b.r*0.8,-b.r*0.6, 0,-b.r*1.3);
+  ctx.fill();
+
+  // Блик
+  ctx.fillStyle = b.good ? '#fff9c4' : '#ff8a80';
+  ctx.globalAlpha=0.7;
+  ctx.beginPath(); ctx.ellipse(-2,-b.r*0.5,2,3,-0.3,0,Math.PI*2); ctx.fill();
+
   ctx.restore();
 }
 
 function applyBooster(bt) {
   boostLabel = bt.label;
-  if (bt.id === 'slowmo')   { slowmo=true;    slowmoTime=bt.dur; }
-  if (bt.id === 'triple')   { tripleJump=true; tripleJumpTime=bt.dur; }
-  if (bt.id === 'shield')   { shield=true;    shieldTime=bt.dur; }
-  if (bt.id === 'magnet')   { magnet=true;    magnetTime=bt.dur; }
-  if (bt.id === 'hyperspd') { hyperspeed=true; hyperspeedTime=bt.dur; }
-  if (bt.id === 'onelive')  {
-    forcedOneLive=true; forcedOneLiveTime=bt.dur;
-    if (lives > 1) {
-      spawnParticles(player.x+14, player.y+PLAYER_H/2, '#ff1744', 10);
-    }
-  }
-  if (bt.id === 'invert')   { invert=true; invertTime=bt.dur; }
-  spawnParticles(player.x+14, player.y, bt.color, 8);
+  if (bt.id==='slowmo')   { slowmo=true;      slowmoTime=bt.dur; }
+  if (bt.id==='triple')   { tripleJump=true;  tripleJumpTime=bt.dur; }
+  if (bt.id==='shield')   { shield=true;      shieldTime=bt.dur; }
+  if (bt.id==='magnet')   { magnet=true;      magnetTime=bt.dur; }
+  if (bt.id==='hyperspd') { hyperspeed=true;  hyperspeedTime=bt.dur; }
+  if (bt.id==='onelive')  { forcedOneLive=true; forcedOneLiveTime=bt.dur; spawnParticles(player.x+14,player.y+PLAYER_H/2,'#ff1744',10); }
+  if (bt.id==='invert')   { invert=true;      invertTime=bt.dur; }
+  spawnParticles(player.x+14, player.y, bt.good?'#ffd740':'#ff1744', 8);
 }
 
 // ═══════════════════════════════════════════════════
 // ПАРТИКЛІ
 // ═══════════════════════════════════════════════════
-function spawnParticles(x, y, color, n) {
-  for (let i = 0; i < n; i++) {
-    particles.push({
-      x, y, color,
-      vx: (Math.random() - 0.5) * 5,
-      vy: -(Math.random() * 5 + 1),
-      life: 1, decay: 0.04 + Math.random() * 0.04,
-      size: Math.random() * 5 + 2,
-      text: null
-    });
-  }
+function spawnParticles(x,y,color,n) {
+  for (let i=0;i<n;i++) particles.push({
+    x,y,color,text:null,
+    vx:(Math.random()-.5)*5, vy:-(Math.random()*5+1),
+    life:1, decay:.04+Math.random()*.04, size:Math.random()*5+2
+  });
 }
-
-function spawnText(x, y, text, color) {
-  particles.push({ x, y, color, vx:0, vy:-1.8, life:1, decay:0.018, size:0, text });
+function spawnText(x,y,text,color) {
+  particles.push({x,y,color,text,vx:0,vy:-1.8,life:1,decay:.018,size:0});
 }
 
 // ═══════════════════════════════════════════════════
 // ЕФЕКТ ГІПЕРСПІДУ
 // ═══════════════════════════════════════════════════
 function drawHyperspeedLines() {
-  ctx.save(); ctx.globalAlpha = 0.3;
-  ctx.strokeStyle = '#ff6d00'; ctx.lineWidth = 1;
-  for (let i = 0; i < 8; i++) {
-    const ly = 20 + i * 25;
-    const llen = 30 + Math.random() * 40;
-    const lx = (frame * 15 + i * 70) % (W + 60) - 30;
-    ctx.beginPath(); ctx.moveTo(lx, ly); ctx.lineTo(lx + llen, ly); ctx.stroke();
+  ctx.save(); ctx.globalAlpha=.28; ctx.strokeStyle='#ff6d00'; ctx.lineWidth=1;
+  for (let i=0;i<8;i++) {
+    const ly = 20+i*25;
+    const llen = 30+Math.random()*40;
+    const lx = (frame*14+i*68)%(W+60)-30;
+    ctx.beginPath(); ctx.moveTo(lx,ly); ctx.lineTo(lx+llen,ly); ctx.stroke();
   }
   ctx.restore();
 }
@@ -681,234 +732,224 @@ function drawHyperspeedLines() {
 // GAME LOOP
 // ═══════════════════════════════════════════════════
 function gameLoop() {
-  if (state !== 'playing') return;
+  if (state!=='playing') return;
   frame++;
 
-  // Швидкість
-  let baseSpeed = 3.5 + Math.floor(score / 150) * 0.4;
-  if (baseSpeed > 10) baseSpeed = 10;
-  if (slowmo) baseSpeed *= 0.4;
-  if (hyperspeed) baseSpeed *= 2;
+  // Швидкість — повільне наростання
+  // 0-200: 3.5, 200-400: 3.9, 400-700: 4.3, 700-1000: 4.7 ... max 9
+  let baseSpeed = 3.5 + Math.floor(score/200)*0.4;
+  if (baseSpeed>9) baseSpeed=9;
+  if (slowmo) baseSpeed*=0.4;
+  if (hyperspeed) baseSpeed*=2;
   speed = baseSpeed;
 
-  // Скор з часом
-  if (frame % 6 === 0) score++;
+  if (frame%6===0) score++;
 
-  // Зміщення фону
-  bgOffset   = (bgOffset + speed * 0.4) % (W * 3);
+  bgOffset    = (bgOffset + speed*0.38) % (W*4);
   groundOffset = (groundOffset + speed) % 48;
 
-  // Спавн перешкод — БЕЗПЕЧНИЙ інтервал
+  // ── СПАВН ПЕРЕШКОД ────────────────────────────────────────
+  // Перевіряємо: права межа останньої перешкоди має відійти
+  // мінімум на calcObstacleGap() пікселів від правого краю
   if (frame > nextObstacle) {
+    // Переконуємось що перешкода вже далеко від гравця
+    const clearance = W - lastObstacleRight + W; // відстань яку пройшла перешкода
     spawnObstacle();
-    const minGap = Math.max(90, 190 - Math.floor(score / 100) * 8);
-    // Мінімум 90 фреймів між перешкодами при поточній швидкості
-    // Це ~1.5 сек при 60fps — достатньо щоб перестрибнути
-    nextObstacle = frame + minGap + Math.floor(Math.random() * 50);
+    const gapFrames = Math.round(calcObstacleGap() / Math.max(speed,3));
+    nextObstacle = frame + gapFrames;
   }
 
-  // Спавн яблук
+  // ── СПАВН ЯБЛУК (не там де перешкоди) ────────────────────
   if (frame > nextApple) {
     spawnApple();
-    nextApple = frame + 100 + Math.floor(Math.random() * 80);
+    nextApple = frame + 90 + Math.floor(Math.random()*70);
   }
 
-  // Спавн бустерів/дебустерів
-  if (frame > nextBooster && score > 50) {
+  // ── СПАВН БУСТЕРІВ (тільки у повітрі, рідше) ─────────────
+  if (frame > nextBooster && score > 60) {
     spawnBooster();
-    nextBooster = frame + 280 + Math.floor(Math.random() * 120);
+    nextBooster = frame + 320 + Math.floor(Math.random()*130);
   }
 
-  // Спавн ворогів
-  if (frame > nextEnemy && score > 80) {
-    spawnShooter();
-    nextEnemy = frame + 220 + Math.floor(Math.random() * 120);
+  // ── СПАВН ВОРОГІВ — тільки після 500 ─────────────────────
+  if (frame > nextEnemy && score >= 500) {
+    spawnFlyingEnemy();
+    nextEnemy = frame + 260 + Math.floor(Math.random()*130);
   }
 
-  // Бос
-  if (!bossDefeated1000 && score >= 1000 && !bossActive) spawnBoss(1);
-  if (!bossDefeated2000 && score >= 2000 && !bossActive) spawnBoss(2);
+  // ── БОСИ ──────────────────────────────────────────────────
+  if (!bossDefeated1000 && score>=1000 && !bossActive) spawnBoss(1);
+  if (!bossDefeated2000 && score>=2000 && !bossActive) spawnBoss(2);
 
   player.update();
 
-  // Рух перешкод
+  // ── РУХАЄМО ВСІХ ──────────────────────────────────────────
   obstacles.forEach(o => {
     o.x -= speed;
-    if (!o.passed && o.x + o.w < player.x) { o.passed = true; score += 5; spawnText(player.x, player.y - 10, '+5', '#69f0ae'); }
-  });
-  obstacles = obstacles.filter(o => o.x > -80);
-
-  // Рух яблук
-  apples.forEach(a => { a.x -= speed; });
-  apples = apples.filter(a => a.x > -30 && !a.collected);
-
-  // Рух бустерів
-  boosters.forEach(b => { b.x -= speed; });
-  boosters = boosters.filter(b => b.x > -30 && !b.collected);
-
-  // Рух ворогів і куль
-  enemies.forEach(e => {
-    e.x -= speed * 0.8;
-    e.shootTimer--;
-    if (e.shootTimer <= 0 && e.x < W - 20 && e.x > 0) {
-      e.bullets.push({ x: e.x, y: e.y + e.h/2, vx: -5 });
-      e.shootTimer = 90 + Math.floor(Math.random() * 40);
+    if (!o.passed && o.x+o.w < player.x) {
+      o.passed = true; score+=5;
+      spawnText(player.x, player.y-12, '+5', '#69f0ae');
     }
-    e.bullets.forEach(b => { b.x += b.vx; });
-    e.bullets = e.bullets.filter(b => b.x > -10);
   });
-  enemies = enemies.filter(e => e.x > -60);
+  obstacles = obstacles.filter(o=>o.x>-80);
 
-  // Рух боса
+  apples.forEach(a=>{ a.x-=speed; });
+  apples = apples.filter(a=>a.x>-30&&!a.collected);
+
+  boosters.forEach(b=>{ b.x-=speed; });
+  boosters = boosters.filter(b=>b.x>-30&&!b.collected);
+
+  flyingEnemies.forEach(e=>{ e.x-=speed*0.85; });
+  flyingEnemies = flyingEnemies.filter(e=>e.x>-60);
+
+  // Бос
   if (boss) {
-    if (boss.phase === 'enter') {
-      boss.x += boss.vx;
-      if (boss.x <= W * 0.55) boss.phase = 'fight';
+    if (boss.phase==='enter') {
+      boss.x+=boss.vx;
+      if (boss.x<=W*0.55) boss.phase='fight';
     } else {
-      boss.x += Math.sin(boss.anim * 0.04) * 1.5;
+      boss.x += Math.sin(boss.anim*0.04)*1.5;
     }
+    // Кулі боса
+    boss.shootTimer--;
+    if (boss.shootTimer<=0 && boss.phase==='fight') {
+      bossBullets.push({x:boss.x, y:boss.y+boss.h/2, vx:-6});
+      boss.shootTimer = 100 + Math.floor(Math.random()*60);
+    }
+    bossBullets.forEach(b=>{ b.x+=b.vx; });
+    bossBullets = bossBullets.filter(b=>b.x>-10);
   }
 
-  // Партиклі
-  particles.forEach(p => { p.x += p.vx; p.y += p.vy; p.vy += 0.12; p.life -= p.decay; });
-  particles = particles.filter(p => p.life > 0);
+  particles.forEach(p=>{ p.x+=p.vx; p.y+=p.vy; p.vy+=0.12; p.life-=p.decay; });
+  particles = particles.filter(p=>p.life>0);
 
-  // ── КОЛІЗІЇ ──────────────────────────────────────────────
+  // ── КОЛІЗІЇ ───────────────────────────────────────────────
   const pb = player.getBox();
-  const effectiveLives = (forcedOneLive && lives > 1) ? 1 : lives;
 
-  // Перешкоди
-  if (invincible === 0) {
+  if (invincible===0) {
+    // Перешкоди
     for (const o of obstacles) {
-      let hit = false;
+      let hit=false;
       if (o.isPit) {
-        // Яма — колізія якщо ноги потрапляють в яму
-        if (pb.x + pb.w > o.x + 4 && pb.x < o.x + o.w - 4 && pb.y + pb.h >= GROUND_Y - 2) hit = true;
+        if (pb.x+pb.w>o.x+4 && pb.x<o.x+o.w-4 && pb.y+pb.h>=GROUND_Y-2) hit=true;
       } else {
-        if (pb.x < o.x + o.w - 4 && pb.x + pb.w > o.x + 4 && pb.y < o.y + o.h - 2 && pb.y + pb.h > o.y + 2) hit = true;
+        if (pb.x<o.x+o.w-4&&pb.x+pb.w>o.x+4&&pb.y<o.y+o.h-2&&pb.y+pb.h>o.y+2) hit=true;
       }
       if (hit) {
         if (shield) {
-          shield = false; shieldTime = 0; invincible = 60;
-          spawnParticles(player.x+14, player.y+PLAYER_H/2, '#00e5ff', 12);
-          obstacles = obstacles.filter(x => x !== o);
-          boostLabel = '';
-          break;
+          shield=false; shieldTime=0; invincible=60; boostLabel='';
+          spawnParticles(player.x+14,player.y+PLAYER_H/2,'#00e5ff',12);
+          obstacles=obstacles.filter(x=>x!==o); break;
         }
-        lives--; invincible = 90;
-        spawnParticles(player.x+14, player.y+PLAYER_H/2, '#ff1744', 15);
-        obstacles = obstacles.filter(x => x !== o);
-        updateLivesHUD();
-        if (lives <= 0) { endGame(); return; }
-        break;
+        lives--; invincible=90;
+        spawnParticles(player.x+14,player.y+PLAYER_H/2,'#ff1744',15);
+        obstacles=obstacles.filter(x=>x!==o);
+        updateLivesHUD(); if(lives<=0){endGame();return;} break;
       }
     }
   }
 
-  // Вороги та кулі
-  if (invincible === 0) {
-    for (const e of enemies) {
-      const eb = { x: e.x+4, y: e.y+2, w: e.w-8, h: e.h-4 };
-      if (pb.x < eb.x+eb.w && pb.x+pb.w > eb.x && pb.y < eb.y+eb.h && pb.y+pb.h > eb.y) {
-        if (shield) { shield=false; shieldTime=0; invincible=60; enemies=enemies.filter(x=>x!==e); boostLabel=''; break; }
-        lives--; invincible=90; spawnParticles(player.x+14, player.y+PLAYER_H/2,'#ff1744',15);
-        enemies=enemies.filter(x=>x!==e); updateLivesHUD(); if(lives<=0){endGame();return;} break;
+  if (invincible===0) {
+    // Летючі вороги (не стріляють)
+    for (const e of flyingEnemies) {
+      const eb={x:e.x+4,y:e.y+2,w:e.w-8,h:e.h-4};
+      if (pb.x<eb.x+eb.w&&pb.x+pb.w>eb.x&&pb.y<eb.y+eb.h&&pb.y+pb.h>eb.y) {
+        if (shield){shield=false;shieldTime=0;invincible=60;flyingEnemies=flyingEnemies.filter(x=>x!==e);boostLabel='';break;}
+        lives--;invincible=90;spawnParticles(player.x+14,player.y+PLAYER_H/2,'#ff1744',15);
+        flyingEnemies=flyingEnemies.filter(x=>x!==e);updateLivesHUD();if(lives<=0){endGame();return;}break;
       }
-      for (const b of e.bullets) {
-        if (pb.x < b.x+4 && pb.x+pb.w > b.x-4 && pb.y < b.y+4 && pb.y+pb.h > b.y-4) {
-          if (shield) { shield=false; shieldTime=0; invincible=60; b.x=-999; boostLabel=''; break; }
-          lives--; invincible=90; spawnParticles(b.x,b.y,'#ff1744',8);
-          b.x=-999; updateLivesHUD(); if(lives<=0){endGame();return;} break;
-        }
+    }
+
+    // Кулі ТІЛЬКИ від боса
+    for (const b of bossBullets) {
+      if (pb.x<b.x+5&&pb.x+pb.w>b.x-5&&pb.y<b.y+5&&pb.y+pb.h>b.y-5) {
+        if (shield){shield=false;shieldTime=0;invincible=60;b.x=-999;boostLabel='';break;}
+        lives--;invincible=90;spawnParticles(b.x,b.y,'#ff1744',8);
+        b.x=-999;updateLivesHUD();if(lives<=0){endGame();return;}break;
       }
     }
   }
 
-  // Бос
-  if (boss && invincible === 0) {
-    const bb = { x: boss.x+6, y: boss.y+8, w: boss.w-12, h: boss.h-8 };
-    // Гравець перестрибнув боса (пройшов зверху)
-    if (!boss.passed && player.y + PLAYER_H < boss.y + 15 && pb.x + pb.w > bb.x && pb.x < bb.x + bb.w) {
+  // Бос — перестрибнути
+  if (boss && invincible===0) {
+    const bb={x:boss.x+6,y:boss.y+8,w:boss.w-12,h:boss.h-8};
+    if (!boss.passed && player.y+PLAYER_H<boss.y+18 && pb.x+pb.w>bb.x && pb.x<bb.x+bb.w) {
       boss.hp--;
-      boss.passed = true;
-      spawnParticles(boss.x + boss.w/2, boss.y, '#ffd740', 15);
-      spawnText(boss.x+boss.w/2, boss.y-20, `HIT!`, '#ffd740');
-      if (boss.hp <= 0) {
-        // Бос переможений
-        const bonusScore = boss.level === 1 ? 100 : 250;
-        score += bonusScore;
-        spawnText(boss.x+boss.w/2, boss.y-30, `+${bonusScore}!`, '#ffd740');
-        spawnParticles(boss.x+boss.w/2, boss.y+boss.h/2, '#ffd740', 25);
-        if (boss.level === 1) bossDefeated1000 = true;
-        if (boss.level === 2) bossDefeated2000 = true;
-        boss = null; bossActive = false;
+      boss.passed=true;
+      spawnParticles(boss.x+boss.w/2,boss.y,'#ffd740',15);
+      spawnText(boss.x+boss.w/2,boss.y-22,'HIT!','#ffd740');
+      if (boss.hp<=0) {
+        const bonus = boss.level===1?100:250;
+        score+=bonus;
+        spawnText(boss.x+boss.w/2,boss.y-32,`+${bonus}!`,'#ffd740');
+        spawnParticles(boss.x+boss.w/2,boss.y+boss.h/2,'#ffd740',25);
+        if (boss.level===1) bossDefeated1000=true;
+        if (boss.level===2) bossDefeated2000=true;
+        boss=null; bossActive=false; bossBullets=[];
       } else {
-        setTimeout(() => { if(boss) boss.passed = false; }, 800);
+        setTimeout(()=>{ if(boss) boss.passed=false; },800);
       }
     }
-    // Контакт з тілом боса — смерть або щит
-    if (!boss) {} // вже переміг
-    else if (pb.x < bb.x+bb.w && pb.x+pb.w > bb.x && pb.y < bb.y+bb.h && pb.y+pb.h > bb.y) {
-      if (shield) { shield=false; shieldTime=0; invincible=90; boostLabel=''; }
-      else { lives--; invincible=90; spawnParticles(player.x+14,player.y+PLAYER_H/2,'#ff1744',20); updateLivesHUD(); if(lives<=0){endGame();return;} }
+    if (boss && pb.x<bb.x+bb.w&&pb.x+pb.w>bb.x&&pb.y<bb.y+bb.h&&pb.y+pb.h>bb.y) {
+      if (shield){shield=false;shieldTime=0;invincible=90;boostLabel='';}
+      else{lives--;invincible=90;spawnParticles(player.x+14,player.y+PLAYER_H/2,'#ff1744',20);updateLivesHUD();if(lives<=0){endGame();return;}}
     }
   }
 
   // Яблука
-  const pb2 = player.getBox();
-  const magnetR = magnet ? 70 : 18;
+  const magnetR = magnet ? 72 : 18;
   for (const a of apples) {
-    const dist = Math.hypot(a.x - pb2.x - pb2.w/2, a.y - pb2.y - pb2.h/2);
-    if (magnet && dist < magnetR && !a.collected) {
-      a.x += (pb2.x + pb2.w/2 - a.x) * 0.12;
-      a.y += (pb2.y + pb2.h/2 - a.y) * 0.12;
+    const dist=Math.hypot(a.x-pb.x-pb.w/2,a.y-pb.y-pb.h/2);
+    if (magnet && dist<magnetR && !a.collected) {
+      a.x += (pb.x+pb.w/2-a.x)*0.12;
+      a.y += (pb.y+pb.h/2-a.y)*0.12;
     }
-    if (dist < a.r + 14) {
-      a.collected = true;
-      if (a.isRed) {
-        score += 50;
-        spawnParticles(a.x, a.y, '#ff1744', 12);
-        spawnText(a.x, a.y - 15, '+1á', '#ff1744');
-        // Відправляємо бонус-коїн в GAS
+    if (dist<a.r+14) {
+      a.collected=true;
+      if (a.isRed){
+        score+=50; spawnParticles(a.x,a.y,'#ff1744',12); spawnText(a.x,a.y-16,'+1á','#ff1744');
         sendBonusCoin();
       } else {
-        score += 10;
-        spawnParticles(a.x, a.y, '#00c853', 8);
-        spawnText(a.x, a.y - 12, '+10', '#00c853');
+        score+=10; spawnParticles(a.x,a.y,'#00c853',8); spawnText(a.x,a.y-13,'+10','#00c853');
       }
     }
   }
 
   // Бустери
   for (const b of boosters) {
-    const dist = Math.hypot(b.x - pb2.x - pb2.w/2, b.y - pb2.y - pb2.h/2);
-    if (dist < b.r + 16) {
-      b.collected = true;
-      applyBooster(b);
-    }
+    const dist=Math.hypot(b.x-pb.x-pb.w/2,b.y-pb.y-pb.h/2);
+    if (dist<b.r+16) { b.collected=true; applyBooster(b); }
   }
 
   // ── МАЛЮВАННЯ ─────────────────────────────────────────────
-  ctx.clearRect(0, 0, W, H);
+  ctx.clearRect(0,0,W,H);
   drawBackground();
   if (hyperspeed) drawHyperspeedLines();
-  drawObstacles();
-  apples.filter(a => !a.collected).forEach(drawApple);
-  boosters.filter(b => !b.collected).forEach(drawBooster);
-  enemies.forEach(drawShooter);
+
+  // Перешкоди
+  for (const o of obstacles) o.draw(o.x,o.y,o.w,o.h);
+
+  // Яблука
+  apples.filter(a=>!a.collected).forEach(drawApple);
+
+  // Бустери / дебустери
+  boosters.filter(b=>!b.collected).forEach(drawBooster);
+
+  // Летючі вороги
+  flyingEnemies.forEach(drawFlyingEnemy);
+
+  // Бос
   if (boss) drawBoss();
 
   // Партиклі
-  particles.forEach(p => {
-    ctx.save(); ctx.globalAlpha = p.life;
+  particles.forEach(p=>{
+    ctx.save(); ctx.globalAlpha=p.life;
     if (p.text) {
-      ctx.fillStyle = p.color;
-      ctx.font = 'bold 13px Nunito';
-      ctx.textAlign = 'center';
-      ctx.fillText(p.text, p.x, p.y);
+      ctx.fillStyle=p.color; ctx.font='bold 13px Nunito'; ctx.textAlign='center';
+      ctx.fillText(p.text,p.x,p.y);
     } else {
-      ctx.fillStyle = p.color;
-      ctx.beginPath(); ctx.arc(p.x, p.y, p.size/2, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle=p.color;
+      ctx.beginPath(); ctx.arc(p.x,p.y,p.size/2,0,Math.PI*2); ctx.fill();
     }
     ctx.restore();
   });
@@ -916,70 +957,68 @@ function gameLoop() {
   player.draw();
 
   // Анонс боса
-  if (bossActive && boss && boss.phase === 'enter') {
-    ctx.save(); ctx.globalAlpha = 0.8 + Math.sin(frame * 0.2) * 0.2;
-    ctx.fillStyle = '#ff1744'; ctx.font = 'bold 16px "Press Start 2P"';
-    ctx.textAlign = 'center'; ctx.shadowColor = '#ff1744'; ctx.shadowBlur = 20;
-    ctx.fillText('⚠ БОС НАБЛИЖАЄТЬСЯ ⚠', W/2, 30);
+  if (bossActive && boss && boss.phase==='enter') {
+    ctx.save();
+    ctx.globalAlpha = 0.8+Math.sin(frame*0.2)*0.2;
+    ctx.fillStyle='#ff1744'; ctx.shadowColor='#ff1744'; ctx.shadowBlur=20;
+    ctx.font='bold 14px "Press Start 2P"'; ctx.textAlign='center';
+    ctx.fillText('⚠ БОС НАБЛИЖАЄТЬСЯ ⚠',W/2,26);
     ctx.restore();
   }
 
-  // HUD оновлення
-  document.getElementById('scoreDisplay').textContent = String(score).padStart(4, '0');
-  document.getElementById('speedDisplay').textContent = 'x' + speed.toFixed(1);
+  // HUD
+  document.getElementById('scoreDisplay').textContent = String(score).padStart(4,'0');
+  document.getElementById('speedDisplay').textContent = 'x'+speed.toFixed(1);
   document.getElementById('boostDisplay').textContent = boostLabel;
 
   requestAnimationFrame(gameLoop);
 }
 
 // ═══════════════════════════════════════════════════
-// КЕРУВАННЯ — тільки стрибки, без присідань
+// КЕРУВАННЯ — тільки стрибки
 // ═══════════════════════════════════════════════════
-document.addEventListener('keydown', e => {
-  if (e.code === 'Space' || e.code === 'ArrowUp') {
+document.addEventListener('keydown', e=>{
+  if (e.code==='Space'||e.code==='ArrowUp') {
     e.preventDefault();
-    if (state === 'playing') player.jump();
-    else if (state === 'idle') startGame();
+    if (state==='playing') player.jump();
+    else if (state==='idle') startGame();
   }
 });
-
-canvas.addEventListener('touchstart', e => {
+canvas.addEventListener('touchstart', e=>{
   e.preventDefault();
-  if (state === 'playing') player.jump();
-  else if (state === 'idle') startGame();
-}, { passive: false });
-
-canvas.addEventListener('mousedown', e => {
-  if (state === 'playing') player.jump();
-  else if (state === 'idle') startGame();
+  if (state==='playing') player.jump();
+  else if (state==='idle') startGame();
+},{ passive:false });
+canvas.addEventListener('mousedown', ()=>{
+  if (state==='playing') player.jump();
+  else if (state==='idle') startGame();
 });
 
 // ═══════════════════════════════════════════════════
 // ІГРОВІ ФУНКЦІЇ
 // ═══════════════════════════════════════════════════
 function updateLivesHUD() {
-  document.querySelectorAll('.heart').forEach((h, i) => {
-    const effective = (forcedOneLive && lives > 1) ? 1 : lives;
-    h.classList.toggle('lost', i >= effective);
+  document.querySelectorAll('.heart').forEach((h,i)=>{
+    const eff = (forcedOneLive&&lives>1)?1:lives;
+    h.classList.toggle('lost',i>=eff);
   });
 }
 
 function startGame() {
   document.getElementById('startOverlay').classList.add('hidden');
   document.getElementById('gameOverOverlay').classList.add('hidden');
-  score = 0; lives = 3; speed = 3.5; frame = 0;
-  obstacles = []; apples = []; boosters = []; particles = []; enemies = [];
-  shield = false; slowmo = false; tripleJump = false; magnet = false;
-  hyperspeed = false; invert = false; forcedOneLive = false;
-  shieldTime = slowmoTime = tripleJumpTime = magnetTime = 0;
-  hyperspeedTime = invertTime = forcedOneLiveTime = 0;
-  invincible = 0; boostLabel = '';
-  boss = null; bossActive = false;
-  redAppleSpawned = false;
-  player.y = FLOOR; player.vy = 0; player.onGround = true;
-  player.jumpCount = 0; player.animFrame = 0; player.animTick = 0;
-  nextObstacle = 80; nextApple = 60; nextBooster = 200; nextEnemy = 400;
-  state = 'playing';
+  score=0; lives=3; speed=3.5; frame=0;
+  obstacles=[]; apples=[]; boosters=[]; particles=[]; flyingEnemies=[]; bossBullets=[];
+  shield=slowmo=tripleJump=magnet=hyperspeed=invert=forcedOneLive=false;
+  shieldTime=slowmoTime=tripleJumpTime=magnetTime=hyperspeedTime=invertTime=forcedOneLiveTime=0;
+  invincible=0; boostLabel='';
+  boss=null; bossActive=bossDefeated1000=bossDefeated2000=false;
+  redAppleSpawned=false; lastObstacleRight=0;
+  player.y=FLOOR; player.vy=0; player.onGround=true;
+  player.jumpCount=0; player.animFrame=0; player.animTick=0;
+  // Перший спавн: яблуко одразу, перешкода через ~2 сек, бустери пізніше, вороги дуже пізніше
+  nextObstacle=110; nextApple=50; nextBooster=260; nextEnemy=99999;
+  state='playing';
   gameCount++;
   localStorage.setItem('aclub_games', gameCount);
   updateLivesHUD();
@@ -987,24 +1026,16 @@ function startGame() {
 }
 
 function endGame() {
-  state = 'dead';
-  const isNewBest = score > bestScore;
-  if (isNewBest) bestScore = score;
-
-  document.getElementById('goScore').textContent = score + ' очок';
+  state='dead';
+  const isNewBest = score>bestScore;
+  if (isNewBest) bestScore=score;
+  document.getElementById('goScore').textContent = score+' очок';
   document.getElementById('bestScore').textContent = bestScore;
-
   const statusEl = document.getElementById('sendStatus');
-  statusEl.textContent = '';
-  statusEl.className = 'send-status';
-
+  statusEl.textContent=''; statusEl.className='send-status';
   document.getElementById('gameOverOverlay').classList.remove('hidden');
-
-  ctx.clearRect(0, 0, W, H);
-  drawBackground();
-  player.draw();
-  ctx.fillStyle = 'rgba(0,0,0,.55)'; ctx.fillRect(0, 0, W, H);
-
+  ctx.clearRect(0,0,W,H); drawBackground(); player.draw();
+  ctx.fillStyle='rgba(0,0,0,.55)'; ctx.fillRect(0,0,W,H);
   sendScore(score);
 }
 
@@ -1013,77 +1044,60 @@ function endGame() {
 // ═══════════════════════════════════════════════════
 function getTgParams() {
   const hash = window.location.hash.substring(1);
-  const params = new URLSearchParams(hash);
-  return {
-    userId:          params.get('tgid'),
-    chatId:          params.get('tgchat'),
-    messageId:       params.get('tgmsg'),
-    inlineMessageId: params.get('tginline')
-  };
+  const p = new URLSearchParams(hash);
+  return { userId:p.get('tgid'), chatId:p.get('tgchat'), messageId:p.get('tgmsg'), inlineMessageId:p.get('tginline') };
 }
 
 async function sendScore(scoreVal) {
   const statusEl = document.getElementById('sendStatus');
-  statusEl.textContent = '⏳ Зберігаємо...';
-  const { userId, chatId, messageId, inlineMessageId } = getTgParams();
-
+  statusEl.textContent='⏳ Зберігаємо...';
+  const { userId,chatId,messageId,inlineMessageId } = getTgParams();
   if (!userId) {
-    const dl = 'https://t.me/AGameMasterbot?start=runner_' + Math.round(scoreVal);
-    statusEl.innerHTML = '<a href="' + dl + '" style="color:#ffd740;font-weight:900;font-size:9px;" onclick="handleSaveClick(event,\'' + dl + '\')">👆 Зберегти результат</a>';
-    statusEl.className = 'send-status err';
-    return;
+    const dl='https://t.me/AGameMasterbot?start=runner_'+Math.round(scoreVal);
+    statusEl.innerHTML='<a href="'+dl+'" style="color:#ffd740;font-weight:900;font-size:9px;" onclick="handleSaveClick(event,\''+dl+'\')">👆 Зберегти результат</a>';
+    statusEl.className='send-status err'; return;
   }
-
-  if ((chatId && messageId) || inlineMessageId) {
-    let query = 'user_id=' + userId + '&score=' + Math.round(scoreVal);
-    if (inlineMessageId) query += '&inline_message_id=' + encodeURIComponent(inlineMessageId);
-    else query += '&chat_id=' + chatId + '&message_id=' + messageId;
-
+  if ((chatId&&messageId)||inlineMessageId) {
+    let q='user_id='+userId+'&score='+Math.round(scoreVal);
+    if (inlineMessageId) q+='&inline_message_id='+encodeURIComponent(inlineMessageId);
+    else q+='&chat_id='+chatId+'&message_id='+messageId;
     try {
-      const resp = await fetch(WORKER_URL + '?' + query);
-      const data = await resp.json();
-      statusEl.textContent = '✅ Результат збережено!';
-      statusEl.className = 'send-status ok';
-      return;
-    } catch(err) { /* fallback */ }
+      const resp=await fetch(WORKER_URL+'?'+q);
+      const data=await resp.json();
+      statusEl.textContent='✅ Результат збережено!'; statusEl.className='send-status ok'; return;
+    } catch(err){}
   }
-
-  const gasUrl = WEBHOOK_URL + '?type=game_result&game=runner&score=' + Math.round(scoreVal) + '&userId=' + userId;
-  try { new Image().src = gasUrl + '&_t=' + Date.now(); } catch(e) {}
-  statusEl.textContent = '✅ Збережено!';
-  statusEl.className = 'send-status ok';
+  const gasUrl=WEBHOOK_URL+'?type=game_result&game=runner&score='+Math.round(scoreVal)+'&userId='+userId;
+  try{ new Image().src=gasUrl+'&_t='+Date.now(); }catch(e){}
+  statusEl.textContent='✅ Збережено!'; statusEl.className='send-status ok';
 }
 
 async function sendBonusCoin() {
-  const { userId } = getTgParams();
+  const { userId }=getTgParams();
   if (!userId) return;
-  const gasUrl = WEBHOOK_URL + '?type=apple_coin&game=runner&userId=' + userId;
-  try { new Image().src = gasUrl + '&_t=' + Date.now(); } catch(e) {}
+  try{ new Image().src=WEBHOOK_URL+'?type=apple_coin&game=runner&userId='+userId+'&_t='+Date.now(); }catch(e){}
 }
 
-function handleSaveClick(e, url) {
+function handleSaveClick(e,url) {
   e.preventDefault();
-  const tg = window.Telegram && window.Telegram.WebApp;
-  if (tg && tg.openTelegramLink) { try { tg.openTelegramLink(url); return; } catch(ex) {} }
-  window.location.href = url;
+  const tg=window.Telegram&&window.Telegram.WebApp;
+  if (tg&&tg.openTelegramLink){try{tg.openTelegramLink(url);return;}catch(ex){}}
+  window.location.href=url;
 }
 
 // ═══════════════════════════════════════════════════
 // IDLE LOOP
 // ═══════════════════════════════════════════════════
 function idleLoop() {
-  if (state !== 'idle') return;
-  ctx.clearRect(0, 0, W, H);
-  drawBackground();
+  if (state!=='idle') return;
+  ctx.clearRect(0,0,W,H); drawBackground();
   player.animTick++;
-  if (player.animTick % 18 === 0) player.animFrame = (player.animFrame + 1) % 4;
+  if (player.animTick%18===0) player.animFrame=(player.animFrame+1)%4;
   player.draw();
-  // Підказка
   ctx.save();
-  ctx.globalAlpha = 0.5 + Math.sin(Date.now() * 0.003) * 0.4;
-  ctx.fillStyle = '#00e676'; ctx.font = '11px "Press Start 2P"';
-  ctx.textAlign = 'center';
-  ctx.fillText('← ТАП / ПРОБІЛ →', W/2, H - 8);
+  ctx.globalAlpha=0.5+Math.sin(Date.now()*0.003)*0.4;
+  ctx.fillStyle='#00e676'; ctx.font='11px "Press Start 2P"'; ctx.textAlign='center';
+  ctx.fillText('← ТАП / ПРОБІЛ →',W/2,H-8);
   ctx.restore();
   requestAnimationFrame(idleLoop);
 }
@@ -1092,11 +1106,10 @@ function idleLoop() {
 // INIT
 // ═══════════════════════════════════════════════════
 initBuildingLayout();
-speed = 3.5; bgOffset = 0; state = 'idle';
-obstacles = []; apples = []; boosters = []; particles = []; enemies = [];
+speed=3.5; bgOffset=0; state='idle';
+obstacles=[]; apples=[]; boosters=[]; particles=[]; flyingEnemies=[]; bossBullets=[];
 idleLoop();
-
-if (window.Telegram && window.Telegram.WebApp) {
+if (window.Telegram&&window.Telegram.WebApp) {
   window.Telegram.WebApp.ready();
   window.Telegram.WebApp.expand();
 }
