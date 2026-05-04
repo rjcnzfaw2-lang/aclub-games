@@ -20,8 +20,12 @@
   .hud-boost { font-size:9px; color:#fff; font-weight:700; min-width:70px; text-align:right; }
   #gameCanvas { border-radius:10px; border:2px solid rgba(0,200,83,.3); display:block; width:100%; height:auto; touch-action:none; flex-shrink:0; }
 
-  /* OVERLAY — скролиться щоб кнопка СТАРТ завжди була видна */
-  .overlay { width:100%; background:rgba(5,15,30,.97); border-radius:14px; border:2px solid rgba(0,200,83,.4); display:flex; flex-direction:column; align-items:center; padding:16px 14px 20px; gap:10px; margin-top:6px; }
+  /* OVERLAY — абсолютно поверх canvas, але прокручується на маленьких екранах */
+  .overlay-wrap { position:relative; width:100%; }
+  .overlay { position:absolute; top:0; left:0; right:0; bottom:0;
+    background:rgba(5,15,30,.97); border-radius:10px; border:2px solid rgba(0,200,83,.4);
+    display:flex; flex-direction:column; align-items:center; justify-content:flex-start;
+    padding:12px 12px 16px; gap:8px; overflow-y:auto; z-index:10; }
   .overlay.hidden { display:none; }
   .overlay-title { font-family:'Unbounded',sans-serif; font-size:18px; color:var(--accent); text-align:center; line-height:1.3; font-weight:900; letter-spacing:2px; }
   .overlay-sub { font-size:10px; color:var(--dim); text-align:center; }
@@ -57,6 +61,7 @@
     <div class="hud-speed" id="speedDisplay">x1.0</div>
     <div class="hud-boost" id="boostDisplay"></div>
   </div>
+  <div class="overlay-wrap">
   <canvas id="gameCanvas" width="520" height="230"></canvas>
 
   <div class="overlay" id="startOverlay">
@@ -90,8 +95,9 @@
     <div class="overlay-best">Рекорд: <span id="bestScore">0</span></div>
     <div class="send-status" id="sendStatus"></div>
     <button class="btn btn-play" onclick="startGame()" style="max-width:160px">↺ ЩЕ РАЗ</button>
-  </div>
-</div>
+  </div><!-- /gameOverOverlay -->
+  </div><!-- /overlay-wrap -->
+</div><!-- /wrapper -->
 
 <script>
 const WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbwIPJ0SNczeY91LhANfg8t3aFCD1l8YWugZRRw0hJj9rIbXnOc-sTpKUETc_Kw3_Y9t/exec";
@@ -289,24 +295,37 @@ function calcObstacleGapPx(){
 
 // ── ЛЕТЮЧІ ВОРОГИ — з'являються після 500, безпечна висота ──
 function spawnFlyingEnemy(){
-  // Завжди на безпечній висоті — НАД перешкодами, НЕ на рівні голови при звичайному бігу
-  const ey = GROUND_Y - 62 - Math.floor(Math.random()*2)*20;
-  flyingEnemies.push({x:W+30,y:ey,w:32,h:22,wingAnim:0});
+  // Тільки якщо немає перешкод на екрані або вони далеко
+  const obsOnScreen=obstacles.filter(o=>o.x<W&&o.x>0);
+  if(obsOnScreen.length>0) return; // є перешкода — не спавнимо
+  const ey=GROUND_Y-58-Math.floor(Math.random()*2)*18;
+  // homeX — позиція де літає на місці
+  const homeX=W*0.72+Math.random()*80;
+  flyingEnemies.push({x:W+30,y:ey,homeX,w:32,h:22,wingAnim:0,phase:'enter'});
 }
 function drawFlyingEnemy(e){
   e.wingAnim+=dt;
-  const px=e.x,py=e.y,flap=Math.sin(e.wingAnim*0.14)*8;
+  // Фаза enter — летить до homeX, потім hover на місці
+  if(e.phase==='enter'){
+    e.x-=speed*0.9*dt;
+    if(e.x<=e.homeX) e.phase='hover';
+  } else {
+    // Hovering — легке погойдування на місці
+    e.x=e.homeX+Math.sin(e.wingAnim*0.04)*8;
+  }
+  e.y+=Math.sin(e.wingAnim*0.06)*0.4; // вертикальне погойдування
+
+  const px=e.x,py=e.y,flap=Math.sin(e.wingAnim*0.18)*10;
   ctx.fillStyle='#b71c1c'; ctx.beginPath(); ctx.ellipse(px+16,py+12,14,8,0,0,Math.PI*2); ctx.fill();
   ctx.fillStyle='#e53935';
   ctx.beginPath(); ctx.moveTo(px+16,py+7); ctx.quadraticCurveTo(px-2,py-9+flap,px-6,py+4); ctx.quadraticCurveTo(px+8,py+9,px+16,py+7); ctx.fill();
   ctx.beginPath(); ctx.moveTo(px+16,py+7); ctx.quadraticCurveTo(px+34,py-9+flap,px+38,py+4); ctx.quadraticCurveTo(px+24,py+9,px+16,py+7); ctx.fill();
   ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(px+11,py+11,3,0,Math.PI*2); ctx.fill(); ctx.beginPath(); ctx.arc(px+21,py+11,3,0,Math.PI*2); ctx.fill();
   ctx.fillStyle='#b71c1c'; ctx.beginPath(); ctx.arc(px+12,py+11,1.5,0,Math.PI*2); ctx.fill(); ctx.beginPath(); ctx.arc(px+22,py+11,1.5,0,Math.PI*2); ctx.fill();
-  // Попередження видно завжди — велике та чітке
-  if(e.x<W+10&&e.x>40){
-    ctx.save(); ctx.fillStyle='#ff5252'; ctx.font='bold 10px "Press Start 2P"'; ctx.textAlign='center';
+  if(e.phase==='hover'){
+    ctx.save(); ctx.fillStyle='#ff5252'; ctx.font='bold 8px "Press Start 2P"'; ctx.textAlign='center';
     ctx.shadowColor='#ff0000'; ctx.shadowBlur=6;
-    ctx.fillText('▲',px+16,py-8); ctx.restore();
+    ctx.fillText('▲',px+16,py-10); ctx.restore();
   }
 }
 
@@ -358,9 +377,17 @@ function drawBoss(){
 }
 
 // ── ЯБЛУКА ───────────────────────────────────────────────────
+function isSafeX(x, w=20){
+  // Перевіряємо чи немає перешкоди в цій зоні
+  for(const o of obstacles){
+    if(o.x<x+w+30&&o.x+o.w>x-30) return false;
+  }
+  return true;
+}
 function spawnApple(forceRed=false){
   const floating=Math.random()<0.55;
   const ay=floating?GROUND_Y-26-Math.floor(Math.random()*3)*22:GROUND_Y-18;
+  if(!isSafeX(W+20)) return; // не спавнимо в перешкоді
   const isRed=forceRed||(!redAppleSpawned&&gameCount>0&&gameCount%50===0&&score>=500);
   if(isRed) redAppleSpawned=true;
   apples.push({x:W+20,y:ay,r:9,isRed,collected:false,anim:0});
@@ -396,6 +423,7 @@ const SPEED_MODS=[
 let speedModObjects=[];
 
 function spawnSpeedMod(){
+  if(!isSafeX(W+20)) return;
   const sm=SPEED_MODS[Math.floor(Math.random()*SPEED_MODS.length)];
   const ay=GROUND_Y-36-Math.floor(Math.random()*2)*18;
   speedModObjects.push({...sm,x:W+20,y:ay,r:12,collected:false,anim:0});
@@ -423,8 +451,8 @@ function drawSpeedMod(m){
 }
 
 function spawnBooster(){
+  if(!isSafeX(W+20)) return; // не в перешкоді
   const bt=BOOST_DEFS[Math.floor(Math.random()*BOOST_DEFS.length)];
-  // Перевіряємо що бустер не з'являється прямо в перешкоді
   const ay=GROUND_Y-42-Math.floor(Math.random()*2)*20;
   boosters.push({...bt,x:W+20,y:ay,r:11,collected:false,anim:0});
 }
@@ -480,15 +508,15 @@ function gameLoop(timestamp){
 
   frame+=dt;
 
-  // Базова швидкість — масштабується по реальному часу
-  let baseSpeed=3.5+Math.floor(score/200)*0.35+speedMod;
-  if(baseSpeed<1.5) baseSpeed=1.5;  // мінімум
-  if(baseSpeed>11)  baseSpeed=11;   // максимум
+  // Базова швидкість — швидше з самого початку
+  let baseSpeed=4.5+Math.floor(score/150)*0.4+speedMod;
+  if(baseSpeed<2) baseSpeed=2;
+  if(baseSpeed>13) baseSpeed=13;
   if(slowmo) baseSpeed*=0.45;
   speed=baseSpeed;
 
-  // Скор нараховується по реальному часу (~1 очко/100мс)
-  score+=dt*0.1;
+  // Скор ~1 очко/66мс (швидше)
+  score+=dt*0.15;
 
   // Speed modifiers — кожні 400 очок
   if(score>=nextSpeedMod&&!bossActive){
@@ -538,25 +566,33 @@ function gameLoop(timestamp){
   apples.forEach(a=>{a.x-=spd;}); apples=apples.filter(a=>a.x>-30&&!a.collected);
   boosters.forEach(b=>{b.x-=spd;}); boosters=boosters.filter(b=>b.x>-30&&!b.collected);
   speedModObjects.forEach(m=>{m.x-=spd;}); speedModObjects=speedModObjects.filter(m=>m.x>-30&&!m.collected);
-  flyingEnemies.forEach(e=>{e.x-=speed*0.85*dt;}); flyingEnemies=flyingEnemies.filter(e=>e.x>-60);
+  flyingEnemies.forEach(e=>{
+    // Рух вже обробляється в drawFlyingEnemy для hover-логіки
+    // Видаляємо тільки якщо виліт за екран вліво
+  });
+  flyingEnemies=flyingEnemies.filter(e=>e.x>-80);
 
   // Бос
   if(boss&&boss.phase==='enter'){ boss.x+=boss.vx*dt; if(boss.x<=W*0.58) boss.phase='fight'; }
   if(boss&&boss.phase==='fight'){ boss.x+=Math.sin(boss.anim*0.03)*1.2*dt; }
 
-  // Кулі боса — швидкість пропорційна dt, реальна швидкість однакова на всіх пристроях
+  // Кулі боса — складніший патерн
   if(boss&&boss.phase==='fight'){
     boss.shootTimer-=dt;
     if(boss.shootTimer<=0){
-      boss.bulletPattern=(boss.bulletPattern+1)%2;
-      const bulletH=boss.bulletPattern===0?GROUND_Y-12:GROUND_Y-30;
-      bossBullets.push({
-        x:boss.x, y:bulletH,
-        vx:-4.5, vy:0,   // повільніші кулі — реальніший час реакції
-        r:10              // більший розмір — краще видно
-      });
-      // Час між пострілами: ~2.5 сек (150 фреймів @ 60fps)
-      boss.shootTimer=150+Math.floor(Math.random()*60);
+      boss.bulletPattern=(boss.bulletPattern+1)%3;
+      if(boss.bulletPattern===0){
+        // Одна куля на рівні ніг
+        bossBullets.push({x:boss.x,y:GROUND_Y-12,vx:-6,vy:0,r:10});
+      } else if(boss.bulletPattern===1){
+        // Дві кулі: ноги + трохи вище
+        bossBullets.push({x:boss.x,y:GROUND_Y-12,vx:-6,vy:0,r:10});
+        bossBullets.push({x:boss.x-20,y:GROUND_Y-34,vx:-5,vy:0,r:8});
+      } else {
+        // Одна швидша куля
+        bossBullets.push({x:boss.x,y:GROUND_Y-20,vx:-8,vy:0,r:9});
+      }
+      boss.shootTimer=100+Math.floor(Math.random()*40);
     }
   }
   bossBullets.forEach(b=>{b.x+=b.vx*dt;b.y+=b.vy*dt;});
@@ -620,11 +656,16 @@ function gameLoop(timestamp){
     }
   }
 
-  // Яблука + магніт
-  const magnetR=magnet?72:18;
+  // Яблука + магніт миттєво збирає всі
   for(const a of apples){
+    if(magnet&&!a.collected&&!noApples){
+      // Миттєво збираємо всі яблука на екрані
+      a.collected=true;
+      if(a.isRed){score+=50;spawnParticles(a.x,a.y,'#ff1744',12);spawnText(a.x,a.y-16,'+1á','#ff1744');sendBonusCoin();}
+      else{score+=10;spawnParticles(a.x,a.y,'#00c853',8);spawnText(a.x,a.y-13,'+10','#00c853');}
+      continue;
+    }
     const dist=Math.hypot(a.x-pb.x-pb.w/2,a.y-pb.y-pb.h/2);
-    if(magnet&&dist<magnetR&&!a.collected&&!noApples){a.x+=(pb.x+pb.w/2-a.x)*0.12*dt;a.y+=(pb.y+pb.h/2-a.y)*0.12*dt;}
     if(dist<a.r+14&&!noApples){
       a.collected=true;
       if(a.isRed){score+=50;spawnParticles(a.x,a.y,'#ff1744',12);spawnText(a.x,a.y-16,'+1á','#ff1744');sendBonusCoin();}
