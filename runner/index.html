@@ -118,19 +118,15 @@ let obstacles, apples, boosters, particles, flyingEnemies, bossBullets;
 let bgOffset = 0, groundOffset = 0;
 let invincible = 0;
 let lastObstacleRight = 0;
-// Постійний модифікатор швидкості (від speed modifiers)
-let speedMod = 0; // додається до базової швидкості назавжди
+let speedMod = 0;
 
-// Бустери
 let shield = false, shieldTime = 0;
 let slowmo = false, slowmoTime = 0;
 let magnet = false, magnetTime = 0;
 let noApples = false, noApplesTime = 0;
 
-// Боси
 let boss = null;
 let bossActive = false;
-let bossBullets = [];
 
 // Лічильник для speed modifiers
 let nextSpeedMod = 400; // перший мод через 400 очок
