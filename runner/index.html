@@ -729,12 +729,19 @@ function endGame(){
 }
 
 // ─── ВІДПРАВКА ────────────────────────────────────────────────
-function getTgParams(){const p=new URLSearchParams(window.location.hash.substring(1));return{userId:p.get('tgid'),chatId:p.get('tgchat'),messageId:p.get('tgmsg'),inlineMessageId:p.get('tginline')};}
+function getTgParams(){const p=new URLSearchParams(window.location.hash.substring(1));return{userId:p.get('tgid'),chatId:p.get('tgchat'),messageId:p.get('tgmsg'),inlineMessageId:p.get('tginline'),currentMsg:p.get('current_msg')};}
 async function sendScore(scoreVal){
   const statusEl=document.getElementById('sendStatus');statusEl.textContent='⏳ Зберігаємо...';
-  const{userId,chatId,messageId,inlineMessageId}=getTgParams();
+  const{userId,chatId,messageId,inlineMessageId,currentMsg}=getTgParams();
   if(!userId){const dl='https://t.me/AGameMasterbot?start=runner_'+Math.round(scoreVal);statusEl.innerHTML='<a href="'+dl+'" style="color:#ffd740;font-weight:900;font-size:9px;" onclick="handleSaveClick(event,\''+dl+'\')">👆 Зберегти результат</a>';statusEl.className='send-status err';return;}
-  if((chatId&&messageId)||inlineMessageId){let q='user_id='+userId+'&score='+Math.round(scoreVal);if(inlineMessageId)q+='&inline_message_id='+encodeURIComponent(inlineMessageId);else q+='&chat_id='+chatId+'&message_id='+messageId;try{await fetch(WORKER_URL+'?'+q);statusEl.textContent='✅ Результат збережено!';statusEl.className='send-status ok';return;}catch(err){}}
+  if((chatId&&messageId)||inlineMessageId){
+    let q='user_id='+userId+'&score='+Math.round(scoreVal);
+    if(inlineMessageId) q+='&inline_message_id='+encodeURIComponent(inlineMessageId);
+    else q+='&chat_id='+chatId+'&message_id='+messageId;
+    // Передаємо current_msg щоб Worker перевірив чи сесія актуальна
+    if(currentMsg) q+='&current_msg='+currentMsg;
+    try{await fetch(WORKER_URL+'?'+q);statusEl.textContent='✅ Результат збережено!';statusEl.className='send-status ok';return;}catch(err){}
+  }
   try{new Image().src=WEBHOOK_URL+'?type=game_result&game=runner&score='+Math.round(scoreVal)+'&userId='+userId+'&_t='+Date.now();}catch(e){}
   statusEl.textContent='✅ Збережено!';statusEl.className='send-status ok';
 }
