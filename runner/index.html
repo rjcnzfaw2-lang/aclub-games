@@ -9,22 +9,21 @@
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
 html,body{width:100%;height:100%;background:#050d1a;overflow:hidden;touch-action:none;}
-#c{display:block;position:absolute;top:0;left:0;}
-/* Overlay — поверх canvas, кнопка завжди видна */
+#c{display:block;position:fixed;top:0;left:0;width:100% !important;height:100% !important;}
 .ov{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;
-    justify-content:center;background:rgba(4,12,26,.95);z-index:99;padding:12px;gap:8px;}
+    justify-content:center;background:rgba(4,12,26,.95);z-index:99;padding:12px;gap:7px;overflow:hidden;}
 .ov.hide{display:none;}
-.title{font-family:'Press Start 2P',monospace;font-size:clamp(14px,4vw,22px);
+.title{font-family:'Press Start 2P',monospace;font-size:clamp(13px,3.5vw,20px);
        color:#00e676;text-align:center;line-height:1.4;letter-spacing:2px;
        text-shadow:0 0 20px rgba(0,230,118,.8);}
-.tips{font-size:clamp(8px,2.2vw,11px);color:#90a4ae;text-align:center;line-height:1.9;max-width:360px;}
+.tips{font-size:clamp(8px,2vw,11px);color:#90a4ae;text-align:center;line-height:1.8;max-width:380px;}
 .tips b{color:#ccc;}
 .row{display:flex;gap:5px;flex-wrap:wrap;justify-content:center;}
-.chip{padding:4px 9px;border-radius:6px;font-size:clamp(7px,2vw,9px);font-weight:900;
+.chip{padding:4px 9px;border-radius:6px;font-size:clamp(7px,1.8vw,9px);font-weight:900;
       border:1px solid rgba(255,255,255,.12);}
 .cg{background:rgba(255,215,64,.15);color:#ffd740;}
 .cb{background:rgba(255,23,68,.15);color:#ff7090;}
-.medal{padding:5px 10px;border-radius:7px;font-size:clamp(8px,2.2vw,10px);font-weight:900;border:1px solid rgba(255,255,255,.12);}
+.medal{padding:5px 10px;border-radius:7px;font-size:clamp(8px,2vw,10px);font-weight:900;border:1px solid rgba(255,255,255,.12);}
 .mg{background:rgba(255,215,64,.15);color:#ffd740;}
 .ms{background:rgba(160,160,160,.15);color:#aaa;}
 .mb{background:rgba(180,100,50,.15);color:#cd7f32;}
@@ -83,20 +82,6 @@ const GAS='https://script.google.com/macros/s/AKfycbwIPJ0SNczeY91LhANfg8t3aFCD1l
 const WRK='https://aclub-runner.rjcnz-faw4.workers.dev';
 
 const cv=document.getElementById('c'),ctx=cv.getContext('2d');
-let W,H,GY,PH,FL,SCALE;
-
-function resize(){
-  W=window.innerWidth; H=window.innerHeight;
-  cv.width=W; cv.height=H;
-  // Базові розміри гри — масштабуємо під екран
-  SCALE=Math.min(W/520,H/230);
-  GY=H-Math.round(44*SCALE);
-  PH=Math.round(36*SCALE);
-  FL=GY-PH;
-}
-resize();
-window.addEventListener('resize',()=>{resize();});
-
 // ── STATE ────────────────────────────────────────────────────
 let state='idle',score=0,lives=3,speed=0,frame=0,bestScore=0;
 let dt=1,lastTime=0,speedMod=0,boostLabel='',inv=0;
@@ -108,6 +93,22 @@ let nextSpeedMod=400,nextApple=0,nextBooster=0,nextEnemy=0;
 let redAppleSpawned=false;
 let gameCount=parseInt(localStorage.getItem('ag')||'0');
 const BDUR=60*3;
+
+let W,H,GY,PH,FL,SCALE;
+
+function resize(){
+  W=window.innerWidth;
+  H=window.innerHeight;
+  cv.width=W;
+  cv.height=H;
+  cv.style.width=W+'px';
+  cv.style.height=H+'px';
+  SCALE=Math.min(W/520,H/230);
+  GY=H-Math.round(44*SCALE);
+  PH=Math.round(36*SCALE);
+  FL=GY-PH;
+}
+window.addEventListener('resize',resize);
 
 // ── PLAYER ───────────────────────────────────────────────────
 const P={
@@ -162,6 +163,10 @@ const P={
   box(){return{x:this.x+s(4),y:this.y+s(2),w:s(20),h:PH-s(2)};}
 };
 function s(v){return Math.round(v*SCALE);}
+
+// Ініціалізуємо розміри після того як P і s() оголошені
+resize();
+P.y=FL;
 
 // ── BACKGROUND ───────────────────────────────────────────────
 const KB=[{w:44,h:58,t:'b'},{w:18,h:92,t:'t'},{w:62,h:46,t:'b'},{w:28,h:72,t:'d'},{w:36,h:52,t:'b'},{w:52,h:62,t:'b'},{w:22,h:82,t:'t'},{w:46,h:42,t:'b'},{w:32,h:98,t:'m'}];
