@@ -127,54 +127,57 @@ if(window.Telegram&&window.Telegram.WebApp){
 
 // ── PLAYER ───────────────────────────────────────────────────
 const P={
-  get x(){return Math.round(70*SCALE);},
-  y:0,vy:0,onGround:true,jc:0,af:0,at:0,
-  init(){this.y=FL;this.vy=0;this.onGround=true;this.jc=0;this.af=0;this.at=0;},
-  jump(){
-    if(this.jc<2){
-      // Ділимо на SCALE бо гравітація теж ділиться
-      this.vy=this.jc===0?-11/SCALE:-8/SCALE;
-      this.onGround=false;this.jc++;
-      spawnP(this.x+s(14),this.y+PH,'#00e676',5);
-    }
-  },
-  update(){
-    // Ділимо гравітацію на SCALE щоб вона була однаковою на всіх екранах
-    this.vy+=(0.44/SCALE)*dt;
-    this.y+=this.vy*dt;
-    if(this.y>=FL){this.y=FL;this.vy=0;this.onGround=true;this.jc=0;}
-    this.at+=dt;if(this.at>=7){this.at=0;this.af=(this.af+1)%4;}
-    if(inv>0)inv-=dt;
-    if(shieldTime>0){shieldTime-=dt;if(shieldTime<=0){shield=false;boostLabel='';}}
-    if(magnetTime>0){magnetTime-=dt;if(magnetTime<=0){magnet=false;boostLabel='';}}
-    if(noApplesTime>0){noApplesTime-=dt;if(noApplesTime<=0){noApples=false;boostLabel='';}}
-  },
-  draw(){
-    if(inv>0&&Math.floor(inv/4)%2===0)return;
-    const px=this.x,py=Math.round(this.y);
-    const run=this.onGround?Math.sin(this.af*Math.PI/2):0;
-    const sz=SCALE;
-    ctx.save();ctx.globalAlpha=.18;ctx.fillStyle='#000';
-    ctx.beginPath();ctx.ellipse(px+s(14),GY+s(2),s(12),s(3),0,0,Math.PI*2);ctx.fill();ctx.restore();
-    if(shield){ctx.save();ctx.globalAlpha=.5;ctx.strokeStyle='#00e5ff';ctx.lineWidth=s(3);
-      ctx.shadowColor='#00e5ff';ctx.shadowBlur=14;ctx.beginPath();ctx.arc(px+s(14),py+PH/2,s(24),0,Math.PI*2);ctx.stroke();ctx.restore();}
-    const lo=run*s(5),arm=this.onGround?Math.cos(this.af*Math.PI/2)*s(4):-s(3);
-    const d=noApples;
-    const BC=d?'#ff1744':'#00c853',DC=d?'#c0003c':'#004d40',LC=d?'#ff6090':'#00a152',SK=d?'#ff6090':'#a5d6a7',HC=d?'#c0003c':'#00c853';
-    ctx.fillStyle=LC;ctx.beginPath();ctx.roundRect(px+s(4),py+s(26),s(9),s(13)+lo,s(3));ctx.fill();
-    ctx.beginPath();ctx.roundRect(px+s(15),py+s(26),s(9),s(13)-lo,s(3));ctx.fill();
-    ctx.fillStyle=DC;ctx.beginPath();ctx.roundRect(px+s(2),py+s(37)+lo,s(13),s(4),s(2));ctx.fill();
-    ctx.beginPath();ctx.roundRect(px+s(13),py+s(37)-lo,s(13),s(4),s(2));ctx.fill();
-    ctx.fillStyle=BC;ctx.beginPath();ctx.roundRect(px+s(3),py+s(12),s(22),s(18),s(5));ctx.fill();
-    ctx.fillStyle=DC;ctx.font=`bold ${s(11)}px Nunito`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('á',px+s(14),py+s(21));
-    ctx.fillStyle=BC;ctx.beginPath();ctx.roundRect(px-s(3),py+s(13)+arm,s(7),s(12),s(3));ctx.fill();
-    ctx.beginPath();ctx.roundRect(px+s(24),py+s(13)-arm,s(7),s(12),s(3));ctx.fill();
-    ctx.fillStyle=SK;ctx.beginPath();ctx.roundRect(px+s(4),py,s(20),s(16),s(8));ctx.fill();
-    ctx.fillStyle=HC;ctx.beginPath();ctx.roundRect(px+s(3),py-s(3),s(22),s(8),[s(6),s(6),0,0]);ctx.fill();
-    ctx.fillStyle='#1a237e';ctx.fillRect(px+s(8),py+s(5),s(3),s(3));ctx.fillRect(px+s(17),py+s(5),s(3),s(3));
-    ctx.strokeStyle='#1a237e';ctx.lineWidth=s(1.5);ctx.beginPath();ctx.arc(px+s(14),py+s(11),s(4),0.2,Math.PI-0.2);ctx.stroke();
-  },
-  box(){return{x:this.x+s(4),y:this.y+s(2),w:s(20),h:PH-s(2)};}
+  get x(){return Math.round(70*SCALE);},
+  y:0,vy:0,onGround:true,jc:0,af:0,at:0,
+  init(){this.y=FL;this.vy=0;this.onGround=true;this.jc=0;this.af=0;this.at=0;},
+  jump(){
+    if(this.jc<2){
+      // ИСПРАВЛЕНО: Теперь мы УМНОЖАЕМ на SCALE, чтобы прыжок
+      // был пропорционален размеру экрана, а не ломался на разных устройствах.
+      this.vy = this.jc === 0 ? -11 * SCALE : -9.5 * SCALE;
+      this.onGround = false;
+      this.jc++;
+      spawnP(this.x+s(14),this.y+PH,'#00e676',5);
+    }
+  },
+  update(){
+    // ИСПРАВЛЕНО: Увеличили базовую гравитацию (с 0.44 до 0.6) для "живого" 
+    // и быстрого падения, а также умножаем ее на SCALE.
+    this.vy += (0.6 * SCALE) * dt;
+    this.y += this.vy * dt;
+    if(this.y >= FL){this.y=FL;this.vy=0;this.onGround=true;this.jc=0;}
+    this.at+=dt;if(this.at>=7){this.at=0;this.af=(this.af+1)%4;}
+    if(inv>0)inv-=dt;
+    if(shieldTime>0){shieldTime-=dt;if(shieldTime<=0){shield=false;boostLabel='';}}
+    if(magnetTime>0){magnetTime-=dt;if(magnetTime<=0){magnet=false;boostLabel='';}}
+    if(noApplesTime>0){noApplesTime-=dt;if(noApplesTime<=0){noApples=false;boostLabel='';}}
+  },
+  draw(){
+    if(inv>0&&Math.floor(inv/4)%2===0)return;
+    const px=this.x,py=Math.round(this.y);
+    const run=this.onGround?Math.sin(this.af*Math.PI/2):0;
+    const sz=SCALE;
+    ctx.save();ctx.globalAlpha=.18;ctx.fillStyle='#000';
+    ctx.beginPath();ctx.ellipse(px+s(14),GY+s(2),s(12),s(3),0,0,Math.PI*2);ctx.fill();ctx.restore();
+    if(shield){ctx.save();ctx.globalAlpha=.5;ctx.strokeStyle='#00e5ff';ctx.lineWidth=s(3);
+      ctx.shadowColor='#00e5ff';ctx.shadowBlur=14;ctx.beginPath();ctx.arc(px+s(14),py+PH/2,s(24),0,Math.PI*2);ctx.stroke();ctx.restore();}
+    const lo=run*s(5),arm=this.onGround?Math.cos(this.af*Math.PI/2)*s(4):-s(3);
+    const d=noApples;
+    const BC=d?'#ff1744':'#00c853',DC=d?'#c0003c':'#004d40',LC=d?'#ff6090':'#00a152',SK=d?'#ff6090':'#a5d6a7',HC=d?'#c0003c':'#00c853';
+    ctx.fillStyle=LC;ctx.beginPath();ctx.roundRect(px+s(4),py+s(26),s(9),s(13)+lo,s(3));ctx.fill();
+    ctx.beginPath();ctx.roundRect(px+s(15),py+s(26),s(9),s(13)-lo,s(3));ctx.fill();
+    ctx.fillStyle=DC;ctx.beginPath();ctx.roundRect(px+s(2),py+s(37)+lo,s(13),s(4),s(2));ctx.fill();
+    ctx.beginPath();ctx.roundRect(px+s(13),py+s(37)-lo,s(13),s(4),s(2));ctx.fill();
+    ctx.fillStyle=BC;ctx.beginPath();ctx.roundRect(px+s(3),py+s(12),s(22),s(18),s(5));ctx.fill();
+    ctx.fillStyle=DC;ctx.font=bold ${s(11)}px Nunito;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('á',px+s(14),py+s(21));
+    ctx.fillStyle=BC;ctx.beginPath();ctx.roundRect(px-s(3),py+s(13)+arm,s(7),s(12),s(3));ctx.fill();
+    ctx.beginPath();ctx.roundRect(px+s(24),py+s(13)-arm,s(7),s(12),s(3));ctx.fill();
+    ctx.fillStyle=SK;ctx.beginPath();ctx.roundRect(px+s(4),py,s(20),s(16),s(8));ctx.fill();
+    ctx.fillStyle=HC;ctx.beginPath();ctx.roundRect(px+s(3),py-s(3),s(22),s(8),[s(6),s(6),0,0]);ctx.fill();
+    ctx.fillStyle='#1a237e';ctx.fillRect(px+s(8),py+s(5),s(3),s(3));ctx.fillRect(px+s(17),py+s(5),s(3),s(3));
+    ctx.strokeStyle='#1a237e';ctx.lineWidth=s(1.5);ctx.beginPath();ctx.arc(px+s(14),py+s(11),s(4),0.2,Math.PI-0.2);ctx.stroke();
+  },
+  box(){return{x:this.x+s(4),y:this.y+s(2),w:s(20),h:PH-s(2)};}
 };
 function s(v){return Math.round(v*SCALE);}
 
