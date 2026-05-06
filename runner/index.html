@@ -133,13 +133,13 @@ const P={
   jump(){
     if(this.jc<2){
       // Простий фіксований стрибок — не залежить від SCALE чи PH
-      this.vy=this.jc===0?-11:-8;
+      this.vy=this.jc===0?-20:-4;
       this.onGround=false;this.jc++;
       spawnP(this.x+s(14),this.y+PH,'#00e676',5);
     }
   },
   update(){
-    this.vy+=2.44*dt;
+    this.vy+=0.44*dt;
     this.y+=this.vy*dt;
     if(this.y>=FL){this.y=FL;this.vy=0;this.onGround=true;this.jc=0;}
     this.at+=dt;if(this.at>=7){this.at=0;this.af=(this.af+1)%4;}
