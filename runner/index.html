@@ -132,14 +132,15 @@ const P={
   init(){this.y=FL;this.vy=0;this.onGround=true;this.jc=0;this.af=0;this.at=0;},
   jump(){
     if(this.jc<2){
-      // Простий фіксований стрибок — не залежить від SCALE чи PH
-      this.vy=this.jc===0?-20:-4;
+      // Ділимо на SCALE бо гравітація теж ділиться
+      this.vy=this.jc===0?-11/SCALE:-8/SCALE;
       this.onGround=false;this.jc++;
       spawnP(this.x+s(14),this.y+PH,'#00e676',5);
     }
   },
   update(){
-    this.vy+=0.44*dt;
+    // Ділимо гравітацію на SCALE щоб вона була однаковою на всіх екранах
+    this.vy+=(0.44/SCALE)*dt;
     this.y+=this.vy*dt;
     if(this.y>=FL){this.y=FL;this.vy=0;this.onGround=true;this.jc=0;}
     this.at+=dt;if(this.at>=7){this.at=0;this.af=(this.af+1)%4;}
@@ -208,21 +209,22 @@ function drawBG(){
   for(let gx=-go;gx<W;gx+=s(48)){ctx.beginPath();ctx.moveTo(gx,GY);ctx.lineTo(gx,H);ctx.stroke();}
 }
 function drawHUD(){
-  const hudH=44,pad=8;
+  // Базуємось на SCALE — однаковий відносний розмір на всіх екранах
+  const fs=Math.round(Math.max(13,Math.min(18*SCALE,22)));
+  const fl=Math.round(Math.max(18,Math.min(22*SCALE,28)));
+  const fsp=Math.round(Math.max(11,Math.min(14*SCALE,18)));
+  const hudH=Math.round(Math.max(44,54*SCALE)),pad=8;
   ctx.fillStyle='rgba(5,15,30,.9)';ctx.beginPath();ctx.roundRect(pad,pad,W-pad*2,hudH,8);ctx.fill();
   ctx.strokeStyle='rgba(0,200,83,.25)';ctx.lineWidth=1;ctx.beginPath();ctx.roundRect(pad,pad,W-pad*2,hudH,8);ctx.stroke();
-  // Score
-  ctx.fillStyle='#ffd740';ctx.font='bold 16px "Press Start 2P",monospace';ctx.textAlign='left';ctx.textBaseline='middle';
+  ctx.fillStyle='#ffd740';ctx.font=`bold ${fs}px "Press Start 2P",monospace`;ctx.textAlign='left';ctx.textBaseline='middle';
   ctx.fillText(String(Math.floor(score)).padStart(4,'0'),pad+12,pad+hudH/2);
-  // Lives
-  const hx=W/2-30;
-  for(let i=0;i<3;i++){ctx.globalAlpha=i<lives?1:.2;ctx.font='20px Arial';ctx.textAlign='center';ctx.fillText('💚',hx+i*26,pad+hudH/2+2);}
+  const hx=W/2-fl;
+  for(let i=0;i<3;i++){ctx.globalAlpha=i<lives?1:.2;ctx.font=`${fl}px Arial`;ctx.textAlign='center';ctx.fillText('💚',hx+i*fl*1.1,pad+hudH/2+2);}
   ctx.globalAlpha=1;
-  // Speed
-  ctx.fillStyle='#00e676';ctx.font='bold 13px "Press Start 2P",monospace';ctx.textAlign='right';
-  ctx.fillText('x'+speed.toFixed(1),W-pad-12-(boostLabel?boostLabel.length*8+8:0),pad+hudH/2);
-  // Boost label
-  if(boostLabel){ctx.fillStyle='#fff';ctx.font='bold 13px Nunito';ctx.textAlign='right';ctx.fillText(boostLabel,W-pad-12,pad+hudH/2);}
+  ctx.fillStyle='#00e676';ctx.font=`bold ${fsp}px "Press Start 2P",monospace`;ctx.textAlign='right';
+  const bw=boostLabel?ctx.measureText(boostLabel).width+10:0;
+  ctx.fillText('x'+speed.toFixed(1),W-pad-12-bw,pad+hudH/2);
+  if(boostLabel){ctx.fillStyle='#fff';ctx.font=`bold ${fsp+2}px Nunito`;ctx.textAlign='right';ctx.fillText(boostLabel,W-pad-12,pad+hudH/2);}
 }
 
 // ── OBSTACLES ────────────────────────────────────────────────
