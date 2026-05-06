@@ -132,9 +132,12 @@ const P={
   init(){this.y=FL;this.vy=0;this.onGround=true;this.jc=0;this.af=0;this.at=0;},
   jump(){
     if(this.jc<2){
-      // Фіксована висота в пікселях екрану — не залежить від SCALE
-      // PH = висота гравця, стрибок = ~3.5 висоти гравця
-      this.vy=this.jc===0?-(PH*3.2):-(PH*2.2);
+      // Висота стрибка = 40% ігрового поля (від землі до верху)
+      // Ігрове поле = GY (відстань від верху до землі)
+      const jumpPx = GY * 0.38;
+      const g = PH * 0.13; // гравітація за фрейм
+      const v = Math.sqrt(2 * g * jumpPx);
+      this.vy = this.jc===0 ? -v : -v * 0.7;
       this.onGround=false;this.jc++;
       spawnP(this.x+s(14),this.y+PH,'#00e676',5);
     }
