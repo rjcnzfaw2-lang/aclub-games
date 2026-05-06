@@ -132,20 +132,14 @@ const P={
   init(){this.y=FL;this.vy=0;this.onGround=true;this.jc=0;this.af=0;this.at=0;},
   jump(){
     if(this.jc<2){
-      // Висота стрибка = 40% ігрового поля (від землі до верху)
-      // Ігрове поле = GY (відстань від верху до землі)
-      const jumpPx = GY * 0.38;
-      const g = PH * 0.13; // гравітація за фрейм
-      const v = Math.sqrt(2 * g * jumpPx);
-      this.vy = this.jc===0 ? -v : -v * 0.7;
+      // Простий фіксований стрибок — не залежить від SCALE чи PH
+      this.vy=this.jc===0?-11:-8;
       this.onGround=false;this.jc++;
       spawnP(this.x+s(14),this.y+PH,'#00e676',5);
     }
   },
   update(){
-    // Гравітація = фіксована відносно висоти гравця, зростає зі швидкістю
-    const speedFactor=Math.max(1,Math.min(speed/4.5, 2.2));
-    this.vy+=PH*0.13*speedFactor*dt;
+    this.vy+=0.44*dt;
     this.y+=this.vy*dt;
     if(this.y>=FL){this.y=FL;this.vy=0;this.onGround=true;this.jc=0;}
     this.at+=dt;if(this.at>=7){this.at=0;this.af=(this.af+1)%4;}
@@ -214,22 +208,21 @@ function drawBG(){
   for(let gx=-go;gx<W;gx+=s(48)){ctx.beginPath();ctx.moveTo(gx,GY);ctx.lineTo(gx,H);ctx.stroke();}
 }
 function drawHUD(){
-  // HUD намальований всередині canvas
-  const hudH=s(34),pad=s(10);
-  ctx.fillStyle='rgba(5,15,30,.88)';ctx.beginPath();ctx.roundRect(pad,pad,W-pad*2,hudH,s(8));ctx.fill();
-  ctx.strokeStyle='rgba(0,200,83,.2)';ctx.lineWidth=1;ctx.beginPath();ctx.roundRect(pad,pad,W-pad*2,hudH,s(8));ctx.stroke();
+  const hudH=44,pad=8;
+  ctx.fillStyle='rgba(5,15,30,.9)';ctx.beginPath();ctx.roundRect(pad,pad,W-pad*2,hudH,8);ctx.fill();
+  ctx.strokeStyle='rgba(0,200,83,.25)';ctx.lineWidth=1;ctx.beginPath();ctx.roundRect(pad,pad,W-pad*2,hudH,8);ctx.stroke();
   // Score
-  ctx.fillStyle='#ffd740';ctx.font=`${s(11)}px "Press Start 2P",monospace`;ctx.textAlign='left';ctx.textBaseline='middle';
-  ctx.fillText(String(Math.floor(score)).padStart(4,'0'),pad+s(10),pad+hudH/2);
+  ctx.fillStyle='#ffd740';ctx.font='bold 16px "Press Start 2P",monospace';ctx.textAlign='left';ctx.textBaseline='middle';
+  ctx.fillText(String(Math.floor(score)).padStart(4,'0'),pad+12,pad+hudH/2);
   // Lives
-  const hx=W/2-s(28);
-  for(let i=0;i<3;i++){ctx.globalAlpha=i<lives?1:.2;ctx.font=`${s(14)}px Arial`;ctx.textAlign='center';ctx.fillText('💚',hx+i*s(20),pad+hudH/2+s(2));}
+  const hx=W/2-30;
+  for(let i=0;i<3;i++){ctx.globalAlpha=i<lives?1:.2;ctx.font='20px Arial';ctx.textAlign='center';ctx.fillText('💚',hx+i*26,pad+hudH/2+2);}
   ctx.globalAlpha=1;
   // Speed
-  ctx.fillStyle='#00e676';ctx.font=`${s(9)}px "Press Start 2P",monospace`;ctx.textAlign='right';
-  ctx.fillText('x'+speed.toFixed(1),W-pad-s(10)-s(70),pad+hudH/2);
+  ctx.fillStyle='#00e676';ctx.font='bold 13px "Press Start 2P",monospace';ctx.textAlign='right';
+  ctx.fillText('x'+speed.toFixed(1),W-pad-12-(boostLabel?boostLabel.length*8+8:0),pad+hudH/2);
   // Boost label
-  if(boostLabel){ctx.fillStyle='#fff';ctx.font=`bold ${s(9)}px Nunito`;ctx.textAlign='right';ctx.fillText(boostLabel,W-pad-s(10),pad+hudH/2);}
+  if(boostLabel){ctx.fillStyle='#fff';ctx.font='bold 13px Nunito';ctx.textAlign='right';ctx.fillText(boostLabel,W-pad-12,pad+hudH/2);}
 }
 
 // ── OBSTACLES ────────────────────────────────────────────────
