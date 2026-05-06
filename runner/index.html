@@ -139,7 +139,7 @@ const P={
     }
   },
   update(){
-    this.vy+=0.88*dt;
+    this.vy+=2.44*dt;
     this.y+=this.vy*dt;
     if(this.y>=FL){this.y=FL;this.vy=0;this.onGround=true;this.jc=0;}
     this.at+=dt;if(this.at>=7){this.at=0;this.af=(this.af+1)%4;}
