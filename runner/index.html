@@ -82,6 +82,11 @@ const GAS='https://script.google.com/macros/s/AKfycbwIPJ0SNczeY91LhANfg8t3aFCD1l
 const WRK='https://aclub-runner.rjcnz-faw4.workers.dev';
 
 const cv=document.getElementById('c'),ctx=cv.getContext('2d');
+// Одразу розгортаємо Telegram WebApp на весь екран
+if(window.Telegram&&window.Telegram.WebApp){
+  window.Telegram.WebApp.ready();
+  window.Telegram.WebApp.expand();
+}
 // ── STATE ────────────────────────────────────────────────────
 let state='idle',score=0,lives=3,speed=0,frame=0,bestScore=0;
 let dt=1,lastTime=0,speedMod=0,boostLabel='',inv=0;
@@ -97,8 +102,14 @@ const BDUR=60*3;
 let W,H,GY,PH,FL,SCALE;
 
 function resize(){
-  W=window.innerWidth;
-  H=window.innerHeight;
+  // Telegram WebApp може давати неправильний innerHeight — беремо максимум
+  W=window.innerWidth||screen.width;
+  H=window.innerHeight||screen.height;
+  // Якщо є Telegram WebApp API — використовуємо його розміри
+  if(window.Telegram&&window.Telegram.WebApp&&window.Telegram.WebApp.viewportHeight>100){
+    H=window.Telegram.WebApp.viewportStableHeight||window.Telegram.WebApp.viewportHeight||H;
+    W=window.Telegram.WebApp.viewportWidth||W;
+  }
   cv.width=W;
   cv.height=H;
   cv.style.width=W+'px';
@@ -109,6 +120,10 @@ function resize(){
   FL=GY-PH;
 }
 window.addEventListener('resize',resize);
+// Telegram expand event
+if(window.Telegram&&window.Telegram.WebApp){
+  window.Telegram.WebApp.onEvent('viewportChanged',resize);
+}
 
 // ── PLAYER ───────────────────────────────────────────────────
 const P={
@@ -117,16 +132,17 @@ const P={
   init(){this.y=FL;this.vy=0;this.onGround=true;this.jc=0;this.af=0;this.at=0;},
   jump(){
     if(this.jc<2){
-      this.vy=this.jc===0?-14*SCALE:-10*SCALE;
+      // Фіксована висота в пікселях екрану — не залежить від SCALE
+      // PH = висота гравця, стрибок = ~3.5 висоти гравця
+      this.vy=this.jc===0?-(PH*3.2):-(PH*2.2);
       this.onGround=false;this.jc++;
       spawnP(this.x+s(14),this.y+PH,'#00e676',5);
     }
   },
   update(){
-    // Гравітація зростає зі швидкістю — стрибок стає коротшим при високій швидкості
-    const speedFactor = Math.max(1, speed / 4.5);
-    const gravity = 0.5 * SCALE * speedFactor * dt;
-    this.vy += gravity;
+    // Гравітація = фіксована відносно висоти гравця, зростає зі швидкістю
+    const speedFactor=Math.max(1,Math.min(speed/4.5, 2.2));
+    this.vy+=PH*0.13*speedFactor*dt;
     this.y+=this.vy*dt;
     if(this.y>=FL){this.y=FL;this.vy=0;this.onGround=true;this.jc=0;}
     this.at+=dt;if(this.at>=7){this.at=0;this.af=(this.af+1)%4;}
@@ -617,7 +633,6 @@ state='idle';lastTime=0;P.y=FL||H-80;P.vy=0;P.onGround=true;P.jc=0;P.af=0;P.at=0
 obstacles=[];apples=[];boosters=[];particles=[];flyingEnemies=[];bossBullets=[];speedMods=[];
 initBL();
 requestAnimationFrame(idleLoop);
-if(window.Telegram&&window.Telegram.WebApp){window.Telegram.WebApp.ready();window.Telegram.WebApp.expand();}
 </script>
 </body>
 </html>
