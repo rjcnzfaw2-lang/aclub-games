@@ -347,8 +347,7 @@ function applyBooster(bt){
   boostLabel=bt.label;
   if(bt.id==='shield'){if(!shield){shield=true;shieldTime=999999;}}
   if(bt.id==='magnet'){
-    magnet=true;magnetTime=BDUR;
-    for(const a of apples){if(a.collected||noApples)continue;a.collected=true;score+=a.isRed?50:10;spawnP(a.x,a.y,a.isRed?'#ff1744':'#00c853',6);spawnT(a.x,a.y-s(13),a.isRed?'+1á':'+10',a.isRed?'#ff1744':'#00c853');if(a.isRed)sendCoin();}
+    magnet=true;magnetTime=60*5; // 5 секунд
   }
   if(bt.id==='noapple'){noApples=true;noApplesTime=BDUR;}
   spawnP(P.x+s(14),P.y,bt.good?'#ffd740':'#ff1744',8);
@@ -522,10 +521,21 @@ function gameLoop(ts){
     }
   }
 
-  // Apples
+  // Apples + magnet attraction
+  const pb2=P.box();
+  const pcx=pb2.x+pb2.w/2, pcy=pb2.y+PH/2;
   for(const a of apples){
-    const dist=Math.hypot(a.x-pb.x-pb.w/2,a.y-pb.y-PH/2);
-    if(dist<a.r+s(14)&&!noApples){
+    if(a.collected)continue;
+    if(magnet&&!noApples){
+      // Плавно притягуємо за ~0.2 сек (швидкість ~5 довжин до цілі за сек)
+      const dx=pcx-a.x, dy=pcy-a.y;
+      const dist=Math.sqrt(dx*dx+dy*dy)||1;
+      const pullSpeed=dist*0.25*dt; // 25% відстані за фрейм — долітає за ~0.2 сек
+      a.x+=dx/dist*pullSpeed;
+      a.y+=dy/dist*pullSpeed;
+    }
+    const dist2=Math.hypot(a.x-pcx,a.y-pcy);
+    if(dist2<a.r+s(14)&&!noApples){
       a.collected=true;
       if(a.isRed){score+=50;spawnP(a.x,a.y,'#ff1744',12);spawnT(a.x,a.y-s(16),'+1á','#ff1744');sendCoin();}
       else{score+=10;spawnP(a.x,a.y,'#00c853',8);spawnT(a.x,a.y-s(13),'+10','#00c853');}
