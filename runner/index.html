@@ -630,9 +630,16 @@ async function sendScore(v){
   const st=document.getElementById('sendSt');st.textContent='⏳ Зберігаємо...';
   const{uid,cid,mid,iid,cur}=getTg();
   if(!uid){const dl='https://t.me/AGameMasterbot?start=runner_'+v;st.innerHTML='<a href="'+dl+'" style="color:#ffd740;font-size:8px;">👆 Зберегти результат</a>';st.className='st err';return;}
-  if((cid&&mid)||iid){let q='user_id='+uid+'&score='+v;if(iid)q+='&inline_message_id='+encodeURIComponent(iid);else q+='&chat_id='+cid+'&message_id='+mid;if(cur)q+='&current_msg='+cur;
-    try{await fetch(WRK+'?'+q);st.textContent='✅ Збережено!';st.className='st ok';return;}catch(e){}}
+  // Завжди зберігаємо в GAS напряму — це головне
   try{new Image().src=GAS+'?type=game_result&game=runner&score='+v+'&userId='+uid+'&_t='+Date.now();}catch(e){}
+  // Паралельно Worker для Top Players (не критично якщо не спрацює)
+  if((cid&&mid)||iid){
+    let q='user_id='+uid+'&score='+v;
+    if(iid)q+='&inline_message_id='+encodeURIComponent(iid);
+    else q+='&chat_id='+cid+'&message_id='+mid;
+    if(cur)q+='&current_msg='+cur;
+    try{fetch(WRK+'?'+q);}catch(e){}
+  }
   st.textContent='✅ Збережено!';st.className='st ok';
 }
 function sendCoin(){const{uid}=getTg();if(!uid)return;try{new Image().src=GAS+'?type=apple_coin&game=runner&userId='+uid+'&_t='+Date.now();}catch(e){}}
