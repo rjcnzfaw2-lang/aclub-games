@@ -82,12 +82,10 @@ const GAS='https://script.google.com/macros/s/AKfycbwIPJ0SNczeY91LhANfg8t3aFCD1l
 const WRK='https://aclub-runner.rjcnz-faw4.workers.dev';
 
 const cv=document.getElementById('c'),ctx=cv.getContext('2d');
-// Одразу розгортаємо Telegram WebApp на весь екран
 if(window.Telegram&&window.Telegram.WebApp){
   window.Telegram.WebApp.ready();
   window.Telegram.WebApp.expand();
 }
-// ── STATE ────────────────────────────────────────────────────
 let state='idle',score=0,lives=3,speed=0,frame=0,bestScore=0;
 let dt=1,lastTime=0,speedMod=0,boostLabel='',inv=0;
 let obstacles=[],apples=[],boosters=[],particles=[],flyingEnemies=[],bossBullets=[],speedMods=[];
@@ -98,52 +96,35 @@ let nextSpeedMod=400,nextApple=0,nextBooster=0,nextEnemy=0;
 let redAppleSpawned=false;
 let gameCount=parseInt(localStorage.getItem('ag')||'0');
 const BDUR=60*3;
-
 let W,H,GY,PH,FL,SCALE;
 
 function resize(){
-  // Telegram WebApp може давати неправильний innerHeight — беремо максимум
   W=window.innerWidth||screen.width;
   H=window.innerHeight||screen.height;
-  // Якщо є Telegram WebApp API — використовуємо його розміри
   if(window.Telegram&&window.Telegram.WebApp&&window.Telegram.WebApp.viewportHeight>100){
     H=window.Telegram.WebApp.viewportStableHeight||window.Telegram.WebApp.viewportHeight||H;
     W=window.Telegram.WebApp.viewportWidth||W;
   }
-  cv.width=W;
-  cv.height=H;
-  cv.style.width=W+'px';
-  cv.style.height=H+'px';
+  cv.width=W;cv.height=H;cv.style.width=W+'px';cv.style.height=H+'px';
   SCALE=Math.min(W/520,H/230);
-  GY=H-Math.round(44*SCALE);
-  PH=Math.round(36*SCALE);
-  FL=GY-PH;
+  GY=H-Math.round(44*SCALE);PH=Math.round(36*SCALE);FL=GY-PH;
 }
 window.addEventListener('resize',resize);
-// Telegram expand event
-if(window.Telegram&&window.Telegram.WebApp){
-  window.Telegram.WebApp.onEvent('viewportChanged',resize);
-}
+if(window.Telegram&&window.Telegram.WebApp){window.Telegram.WebApp.onEvent('viewportChanged',resize);}
 
-// ── PLAYER ───────────────────────────────────────────────────
 const P={
   get x(){return Math.round(70*SCALE);},
   y:0,vy:0,onGround:true,jc:0,af:0,at:0,
   init(){this.y=FL;this.vy=0;this.onGround=true;this.jc=0;this.af=0;this.at=0;},
   jump(){
     if(this.jc<2){
-      // Гравітація 0.44 px/frame² — стрибок в тих же пікселях
-      // Висота в "базових" пікселях (до SCALE): 90px перший, 60px другий
-      // Множимо на SCALE щоб відповідало реальним пікселям
-      const h1=90*SCALE, h2=60*SCALE;
+      const h1=90*SCALE,h2=60*SCALE;
       this.vy=this.jc===0?-Math.sqrt(2*0.44*h1):-Math.sqrt(2*0.44*h2);
-      this.onGround=false;this.jc++;
-      spawnP(this.x+s(14),this.y+PH,'#00e676',5);
+      this.onGround=false;this.jc++;spawnP(this.x+s(14),this.y+PH,'#00e676',5);
     }
   },
   update(){
-    this.vy+=0.44*dt;
-    this.y+=this.vy*dt;
+    this.vy+=0.44*dt;this.y+=this.vy*dt;
     if(this.y>=FL){this.y=FL;this.vy=0;this.onGround=true;this.jc=0;}
     this.at+=dt;if(this.at>=7){this.at=0;this.af=(this.af+1)%4;}
     if(inv>0)inv-=dt;
@@ -155,7 +136,6 @@ const P={
     if(inv>0&&Math.floor(inv/4)%2===0)return;
     const px=this.x,py=Math.round(this.y);
     const run=this.onGround?Math.sin(this.af*Math.PI/2):0;
-    const sz=SCALE;
     ctx.save();ctx.globalAlpha=.18;ctx.fillStyle='#000';
     ctx.beginPath();ctx.ellipse(px+s(14),GY+s(2),s(12),s(3),0,0,Math.PI*2);ctx.fill();ctx.restore();
     if(shield){ctx.save();ctx.globalAlpha=.5;ctx.strokeStyle='#00e5ff';ctx.lineWidth=s(3);
@@ -179,12 +159,8 @@ const P={
   box(){return{x:this.x+s(4),y:this.y+s(2),w:s(20),h:PH-s(2)};}
 };
 function s(v){return Math.round(v*SCALE);}
+resize();P.y=FL;
 
-// Ініціалізуємо розміри після того як P і s() оголошені
-resize();
-P.y=FL;
-
-// ── BACKGROUND ───────────────────────────────────────────────
 const KB=[{w:44,h:58,t:'b'},{w:18,h:92,t:'t'},{w:62,h:46,t:'b'},{w:28,h:72,t:'d'},{w:36,h:52,t:'b'},{w:52,h:62,t:'b'},{w:22,h:82,t:'t'},{w:46,h:42,t:'b'},{w:32,h:98,t:'m'}];
 let BL=[];
 function initBL(){BL=[];let bx=0;while(bx<W*4){const b=KB[Math.floor(Math.random()*KB.length)];BL.push({...b,ox:bx,ws:b.w*SCALE,hs:b.h*SCALE});bx+=b.w*SCALE+Math.floor(Math.random()*10);}}
@@ -211,7 +187,6 @@ function drawBG(){
   for(let gx=-go;gx<W;gx+=s(48)){ctx.beginPath();ctx.moveTo(gx,GY);ctx.lineTo(gx,H);ctx.stroke();}
 }
 function drawHUD(){
-  // Базуємось на SCALE — однаковий відносний розмір на всіх екранах
   const fs=Math.round(Math.max(13,Math.min(18*SCALE,22)));
   const fl=Math.round(Math.max(18,Math.min(22*SCALE,28)));
   const fsp=Math.round(Math.max(11,Math.min(14*SCALE,18)));
@@ -229,7 +204,6 @@ function drawHUD(){
   if(boostLabel){ctx.fillStyle='#fff';ctx.font=`bold ${fsp+2}px Nunito`;ctx.textAlign='right';ctx.fillText(boostLabel,W-pad-12,pad+hudH/2);}
 }
 
-// ── OBSTACLES ────────────────────────────────────────────────
 const OT=[
   {id:'cone',w:22,h:32,draw(x,y,w,h){ctx.fillStyle='#ff6f00';ctx.beginPath();ctx.moveTo(x,y+h);ctx.lineTo(x+w/2,y);ctx.lineTo(x+w,y+h);ctx.fill();ctx.fillStyle='#ffcc02';ctx.beginPath();ctx.moveTo(x+w*.18,y+h*.85);ctx.lineTo(x+w/2,y+h*.2);ctx.lineTo(x+w*.82,y+h*.85);ctx.fill();ctx.fillStyle='rgba(255,255,255,.8)';ctx.fillRect(x+w*.14,y+h*.38,w*.72,h*.05);ctx.fillRect(x+w*.23,y+h*.62,w*.54,h*.05);ctx.fillStyle='#e65100';ctx.beginPath();ctx.roundRect(x-s(2),y+h-s(4),w+s(4),s(4),s(2));ctx.fill();}},
   {id:'barrier',w:16,h:46,draw(x,y,w,h){ctx.fillStyle='#d32f2f';ctx.beginPath();ctx.roundRect(x+w*.25,y,w*.5,h,s(3));ctx.fill();ctx.fillStyle='#ffeb3b';ctx.fillRect(x+w*.19,y+h*.17,w*.62,h*.1);ctx.fillRect(x+w*.19,y+h*.46,w*.62,h*.1);ctx.fillRect(x+w*.19,y+h*.75,w*.62,h*.1);ctx.save();ctx.fillStyle='#ffd740';ctx.shadowColor='#ffd740';ctx.shadowBlur=8;ctx.beginPath();ctx.arc(x+w/2,y+s(5),s(5),0,Math.PI*2);ctx.fill();ctx.restore();}},
@@ -238,18 +212,13 @@ const OT=[
   {id:'spike',w:26,h:36,draw(x,y,w,h){ctx.fillStyle='#4a148c';ctx.beginPath();ctx.moveTo(x,y+h);ctx.lineTo(x+w/2,y);ctx.lineTo(x+w,y+h);ctx.fill();ctx.fillStyle='#9c27b0';ctx.beginPath();ctx.moveTo(x+w*.19,y+h);ctx.lineTo(x+w/2,y+h*.17);ctx.lineTo(x+w*.81,y+h);ctx.fill();ctx.strokeStyle='#e040fb';ctx.lineWidth=s(1);ctx.beginPath();ctx.moveTo(x,y+h);ctx.lineTo(x+w/2,y);ctx.lineTo(x+w,y+h);ctx.stroke();}},
 ];
 
-// Безпечний gap в СЕКУНДАХ реакції — незалежно від швидкості
 function safeGapPx(){
-  // При вищій швидкості gap більший — гравець має більше часу на реакцію
-  const reactionSec = Math.max(1.4, 1.4 + (speed - 4.5) * 0.08);
-  return speed * 60 * reactionSec * SCALE + Math.random() * s(80);
+  const reactionSec=Math.max(1.4,1.4+(speed-4.5)*0.08);
+  return speed*60*reactionSec*SCALE+Math.random()*s(80);
 }
-
 function spawnGroup(){
-  const r=Math.random();
-  let count=1;
-  if(score>400&&r<0.28)count=2;
-  if(score>800&&r<0.12)count=3;
+  const r=Math.random();let count=1;
+  if(score>400&&r<0.28)count=2;if(score>800&&r<0.12)count=3;
   let xOff=W+s(30);
   for(let i=0;i<count;i++){
     const avail=score<150?OT.filter(t=>!t.isPit):OT;
@@ -262,7 +231,6 @@ function spawnGroup(){
 }
 function lastObsRight(){if(!obstacles.length)return -9999;const o=obstacles[obstacles.length-1];return o.x+o.w;}
 
-// ── FLYING ENEMY ─────────────────────────────────────────────
 function trySpawnEnemy(){
   const onScreen=obstacles.filter(o=>o.x>0&&o.x<W);
   if(onScreen.length>0||flyingEnemies.length>0)return;
@@ -286,7 +254,6 @@ function drawFlyingEnemy(e){
   if(e.phase==='hover'){ctx.save();ctx.fillStyle='#ff5252';ctx.font=`bold ${s(9)}px "Press Start 2P"`;ctx.textAlign='center';ctx.shadowColor='#f00';ctx.shadowBlur=6;ctx.fillText('▲',px+e.w/2,py-s(10));ctx.restore();}
 }
 
-// ── BOSS ─────────────────────────────────────────────────────
 function getBossZone(sc){const idx=Math.floor((sc-1000)/2000);if(idx<0)return null;return{start:1000+idx*2000,end:1300+idx*2000,level:idx+1};}
 function spawnBoss(level){
   bossActive=true;bossBullets=[];obstacles=[];flyingEnemies=[];
@@ -307,29 +274,19 @@ function drawBoss(){
   ctx.beginPath();ctx.arc(px+boss.w*.7,py+boss.h*.37+bob,s(8),0,Math.PI*2);ctx.fill();ctx.restore();
   ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(px+boss.w*.33,py+boss.h*.37+bob,s(3.5),0,Math.PI*2);ctx.fill();
   ctx.beginPath();ctx.arc(px+boss.w*.67,py+boss.h*.37+bob,s(3.5),0,Math.PI*2);ctx.fill();
-  // HP bar
   ctx.fillStyle='#111';ctx.beginPath();ctx.roundRect(px-s(10),py+bob-s(16),boss.w+s(20),s(8),s(3));ctx.fill();
   ctx.fillStyle=boss.hp/boss.maxHp>.5?'#ff1744':'#ff6d00';ctx.beginPath();ctx.roundRect(px-s(10),py+bob-s(16),(boss.w+s(20))*(boss.hp/boss.maxHp),s(8),s(3));ctx.fill();
   ctx.fillStyle='#fff';ctx.font=`bold ${s(7)}px Nunito`;ctx.textAlign='center';ctx.fillText(`👾 HP:${boss.hp}/${boss.maxHp}`,px+boss.w/2,py+bob-s(19));
-  // Bullets
   for(const b of bossBullets){
     ctx.save();ctx.shadowColor='#ff6d00';ctx.shadowBlur=12;
     ctx.fillStyle='rgba(255,109,0,.3)';ctx.beginPath();ctx.arc(b.x,b.y,b.r+s(4),0,Math.PI*2);ctx.fill();
     ctx.fillStyle='#ff6d00';ctx.beginPath();ctx.arc(b.x,b.y,b.r,0,Math.PI*2);ctx.fill();
     ctx.fillStyle='#ffe082';ctx.beginPath();ctx.arc(b.x-b.r*.3,b.y-b.r*.3,b.r*.4,0,Math.PI*2);ctx.fill();ctx.restore();
-    // Підказка
-    if(b.x>W*.4&&b.x<W*.9){
-      ctx.save();ctx.globalAlpha=.7;ctx.fillStyle='#fff';ctx.font=`bold ${s(10)}px Arial`;ctx.textAlign='center';
-      ctx.fillText(b.hint,b.x,b.hint==='▲'?b.y-b.r-s(8):b.y+b.r+s(14));ctx.restore();
-    }
+    if(b.x>W*.4&&b.x<W*.9){ctx.save();ctx.globalAlpha=.7;ctx.fillStyle='#fff';ctx.font=`bold ${s(10)}px Arial`;ctx.textAlign='center';ctx.fillText(b.hint,b.x,b.hint==='▲'?b.y-b.r-s(8):b.y+b.r+s(14));ctx.restore();}
   }
 }
 
-// ── APPLES / BOOSTERS / SPEED MODS ──────────────────────────
-function isSafe(xPos){
-  for(const o of obstacles){if(o.x<xPos+s(100)&&o.x+o.w>xPos-s(50))return false;}
-  return true;
-}
+function isSafe(xPos){for(const o of obstacles){if(o.x<xPos+s(100)&&o.x+o.w>xPos-s(50))return false;}return true;}
 function trySpawnApple(){
   if(!isSafe(W+s(15)))return;
   const fl=Math.random()<.55,ay=fl?GY-s(26)-Math.floor(Math.random()*3)*s(22):GY-s(18);
@@ -346,9 +303,7 @@ function trySpawnBooster(){
 function applyBooster(bt){
   boostLabel=bt.label;
   if(bt.id==='shield'){if(!shield){shield=true;shieldTime=999999;}}
-  if(bt.id==='magnet'){
-    magnet=true;magnetTime=60*5; // 5 секунд
-  }
+  if(bt.id==='magnet'){magnet=true;magnetTime=60*5;}
   if(bt.id==='noapple'){noApples=true;noApplesTime=BDUR;}
   spawnP(P.x+s(14),P.y,bt.good?'#ffd740':'#ff1744',8);
 }
@@ -373,8 +328,6 @@ function drawApple(a){
   if(noApples){ctx.globalAlpha=.9;ctx.strokeStyle='#ff1744';ctx.lineWidth=s(2.5);ctx.beginPath();ctx.moveTo(-a.r,-a.r);ctx.lineTo(a.r,a.r);ctx.stroke();ctx.beginPath();ctx.moveTo(a.r,-a.r);ctx.lineTo(-a.r,a.r);ctx.stroke();}
   ctx.restore();
 }
-
-// Speed modifiers
 const SMODS=[{id:'f',label:'⚡ +SPD',delta:1,color:'#ff6d00'},{id:'s',label:'🐢 -SPD',delta:-1,color:'#40c4ff'}];
 function trySpawnSpeedMod(){
   if(!isSafe(W+s(15)))return;
@@ -393,27 +346,19 @@ function drawSpeedMod(m){
   ctx.fillText(m.label,m.x,m.y+bob+m.r+s(12));ctx.restore();
 }
 
-// ── PARTICLES ────────────────────────────────────────────────
 function spawnP(x,y,color,n){for(let i=0;i<n;i++)particles.push({x,y,color,text:null,vx:(Math.random()-.5)*s(5),vy:-(Math.random()*s(5)+s(1)),life:1,decay:.04+Math.random()*.04,size:Math.random()*s(5)+s(2)});}
 function spawnT(x,y,text,color){particles.push({x,y,color,text,vx:0,vy:-s(1.8),life:1,decay:.018,size:0});}
 
-// ── GAME LOOP ─────────────────────────────────────────────────
 function gameLoop(ts){
   if(state!=='playing')return;
   if(!lastTime)lastTime=ts;
   const el=ts-lastTime;lastTime=ts;
-  dt=Math.min(el/16.667,3);
-  frame+=dt;
-
+  dt=Math.min(el/16.667,3);frame+=dt;
   let bs=4.5+Math.floor(score/150)*.4+speedMod;
-  if(bs<2)bs=2;if(bs>14)bs=14;
-  speed=bs;
-
+  if(bs<2)bs=2;if(bs>14)bs=14;speed=bs;
   score+=dt*.15;
   bgOff=(bgOff+speed*SCALE*dt*.38)%(W*4);
   grOff=(grOff+speed*SCALE*dt)%s(48);
-
-  // Boss zones
   if(!bossActive){
     const z=getBossZone(Math.floor(score));
     if(z&&Math.floor(score)>=z.start&&Math.floor(score)<=z.end&&!boss)spawnBoss(z.level);
@@ -423,21 +368,17 @@ function gameLoop(ts){
     if(z&&Math.floor(score)>z.end+50&&boss.phase==='fight'){boss.phase='flee';boss.vx=s(3);}
     if(boss.phase==='flee'){boss.x+=boss.vx*2*dt;if(boss.x>W+s(100)){boss=null;bossActive=false;bossBullets=[];nextEnemy=frame+300;}}
   }
-
-  // Spawn obstacles
   if(!bossActive){
     if(lastObsRight()<W-safeGapPx()&&frame>80)spawnGroup();
     if(frame>nextApple){trySpawnApple();nextApple=frame+80+Math.random()*60;}
     if(frame>nextBooster&&score>60){trySpawnBooster();nextBooster=frame+300+Math.random()*120;}
     if(score>=nextSpeedMod){trySpawnSpeedMod();nextSpeedMod+=400+Math.random()*200;}
     if(frame>nextEnemy&&score>=500){trySpawnEnemy();nextEnemy=frame+250+Math.random()*120;}
-  } else {
+  }else{
     if(frame>nextApple){trySpawnApple();nextApple=frame+80;}
     if(frame>nextBooster&&score>60){trySpawnBooster();nextBooster=frame+300;}
   }
-
   P.update();
-
   const spd=speed*SCALE*dt;
   obstacles.forEach(o=>{o.x-=spd;if(!o.passed&&o.x+o.w<P.x){o.passed=true;score+=5;spawnT(P.x+s(14),P.y-s(12),'+5','#69f0ae');}});
   obstacles=obstacles.filter(o=>o.x>-s(80));
@@ -445,47 +386,24 @@ function gameLoop(ts){
   boosters.forEach(b=>{b.x-=spd;});boosters=boosters.filter(b=>b.x>-s(30)&&!b.collected);
   speedMods.forEach(m=>{m.x-=spd;});speedMods=speedMods.filter(m=>m.x>-s(30)&&!m.collected);
   flyingEnemies.forEach(updateFlyingEnemy);flyingEnemies=flyingEnemies.filter(e=>e.x>-s(80));
-
-  // Boss movement
   if(boss&&boss.phase==='enter'){boss.x+=boss.vx*dt;if(boss.x<=W*.58)boss.phase='fight';}
   if(boss&&boss.phase==='fight'){
-    boss.x+=Math.sin(boss.anim*.03)*s(1.2)*dt;
-    boss.shootTimer-=dt;
+    boss.x+=Math.sin(boss.anim*.03)*s(1.2)*dt;boss.shootTimer-=dt;
     if(boss.shootTimer<=0){
       boss.pat=(boss.pat+1)%5;
-      if(boss.pat===0){
-        // Низька куля — треба стрибати
-        bossBullets.push({x:boss.x,y:GY-s(14),vx:-s(6),vy:0,r:s(10),hint:'▲'});
-      } else if(boss.pat===1){
-        // Дві кулі одночасно: низька і висока — потрібно вибрати правильну висоту
-        bossBullets.push({x:boss.x,y:GY-s(14),vx:-s(5.5),vy:0,r:s(9),hint:'▲'});
-        bossBullets.push({x:boss.x-s(25),y:GY-s(42),vx:-s(5),vy:0,r:s(8),hint:'—'});
-      } else if(boss.pat===2){
-        // Швидка куля
-        bossBullets.push({x:boss.x,y:GY-s(20),vx:-s(9),vy:0,r:s(9),hint:'▲'});
-      } else if(boss.pat===3){
-        // Висока куля — треба присісти (не стрибати)
-        bossBullets.push({x:boss.x,y:GY-s(50),vx:-s(6),vy:0,r:s(9),hint:'—'});
-      } else {
-        // Три кулі підряд з різною висотою
-        bossBullets.push({x:boss.x,y:GY-s(14),vx:-s(6),vy:0,r:s(8),hint:'▲'});
-        setTimeout(()=>{if(boss)bossBullets.push({x:boss.x,y:GY-s(35),vx:-s(6),vy:0,r:s(8),hint:'—'});},400);
-        setTimeout(()=>{if(boss)bossBullets.push({x:boss.x,y:GY-s(14),vx:-s(6),vy:0,r:s(8),hint:'▲'});},800);
-      }
+      if(boss.pat===0){bossBullets.push({x:boss.x,y:GY-s(14),vx:-s(6),vy:0,r:s(10),hint:'▲'});}
+      else if(boss.pat===1){bossBullets.push({x:boss.x,y:GY-s(14),vx:-s(5.5),vy:0,r:s(9),hint:'▲'});bossBullets.push({x:boss.x-s(25),y:GY-s(42),vx:-s(5),vy:0,r:s(8),hint:'—'});}
+      else if(boss.pat===2){bossBullets.push({x:boss.x,y:GY-s(20),vx:-s(9),vy:0,r:s(9),hint:'▲'});}
+      else if(boss.pat===3){bossBullets.push({x:boss.x,y:GY-s(50),vx:-s(6),vy:0,r:s(9),hint:'—'});}
+      else{bossBullets.push({x:boss.x,y:GY-s(14),vx:-s(6),vy:0,r:s(8),hint:'▲'});setTimeout(()=>{if(boss)bossBullets.push({x:boss.x,y:GY-s(35),vx:-s(6),vy:0,r:s(8),hint:'—'});},400);setTimeout(()=>{if(boss)bossBullets.push({x:boss.x,y:GY-s(14),vx:-s(6),vy:0,r:s(8),hint:'▲'});},800);}
       boss.shootTimer=80+Math.random()*40;
     }
   }
-  bossBullets.forEach(b=>{b.x+=b.vx*dt;b.y+=b.vy*dt;});
-  bossBullets=bossBullets.filter(b=>b.x>-s(20)&&b.y<H+s(20));
-
-  particles.forEach(p=>{p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=.12*SCALE*dt;p.life-=p.decay*dt;});
-  particles=particles.filter(p=>p.life>0);
-
-  // Collisions
+  bossBullets.forEach(b=>{b.x+=b.vx*dt;b.y+=b.vy*dt;});bossBullets=bossBullets.filter(b=>b.x>-s(20)&&b.y<H+s(20));
+  particles.forEach(p=>{p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=.12*SCALE*dt;p.life-=p.decay*dt;});particles=particles.filter(p=>p.life>0);
   const pb=P.box();
   function hitShield(rm){if(shield){shield=false;shieldTime=0;inv=70;boostLabel='';spawnT(P.x+s(14),P.y-s(10),'ЩИТ!','#00e5ff');if(rm)rm();return true;}return false;}
   function hitPlayer(){lives--;inv=90;spawnP(P.x+s(14),P.y+PH/2,'#ff1744',15);if(lives<=0){endGame();return false;}return true;}
-
   if(inv<=0){
     for(const o of [...obstacles]){
       let hit=false;
@@ -508,7 +426,6 @@ function gameLoop(ts){
       }
     }
   }
-  // Boss jump
   if(boss&&inv<=0&&(boss.phase==='fight'||boss.phase==='enter')){
     const bb={x:boss.x+s(6),y:boss.y+s(8),w:boss.w-s(12),h:boss.h-s(8)};
     if(!boss.passed&&P.y+PH<boss.y+s(20)&&pb.x+pb.w>bb.x&&pb.x<bb.x+bb.w){
@@ -516,24 +433,12 @@ function gameLoop(ts){
       if(boss.hp<=0){score+=boss.level===1?100:(boss.level===2?250:400);spawnP(boss.x+boss.w/2,boss.y+boss.h/2,'#ffd740',30);boss=null;bossActive=false;bossBullets=[];}
       else setTimeout(()=>{if(boss)boss.passed=false;},800);
     }
-    if(boss&&pb.x<bb.x+bb.w&&pb.x+pb.w>bb.x&&pb.y<bb.y+bb.h&&pb.y+pb.h>bb.y){
-      if(!hitShield(null)){if(!hitPlayer())return;}
-    }
+    if(boss&&pb.x<bb.x+bb.w&&pb.x+pb.w>bb.x&&pb.y<bb.y+bb.h&&pb.y+pb.h>bb.y){if(!hitShield(null)){if(!hitPlayer())return;}}
   }
-
-  // Apples + magnet attraction
-  const pb2=P.box();
-  const pcx=pb2.x+pb2.w/2, pcy=pb2.y+PH/2;
+  const pb2=P.box();const pcx=pb2.x+pb2.w/2,pcy=pb2.y+PH/2;
   for(const a of apples){
     if(a.collected)continue;
-    if(magnet&&!noApples){
-      // Плавно притягуємо за ~0.2 сек (швидкість ~5 довжин до цілі за сек)
-      const dx=pcx-a.x, dy=pcy-a.y;
-      const dist=Math.sqrt(dx*dx+dy*dy)||1;
-      const pullSpeed=dist*0.25*dt; // 25% відстані за фрейм — долітає за ~0.2 сек
-      a.x+=dx/dist*pullSpeed;
-      a.y+=dy/dist*pullSpeed;
-    }
+    if(magnet&&!noApples){const dx=pcx-a.x,dy=pcy-a.y;const dist=Math.sqrt(dx*dx+dy*dy)||1;const pullSpeed=dist*0.25*dt;a.x+=dx/dist*pullSpeed;a.y+=dy/dist*pullSpeed;}
     const dist2=Math.hypot(a.x-pcx,a.y-pcy);
     if(dist2<a.r+s(14)&&!noApples){
       a.collected=true;
@@ -541,13 +446,7 @@ function gameLoop(ts){
       else{score+=10;spawnP(a.x,a.y,'#00c853',8);spawnT(a.x,a.y-s(13),'+10','#00c853');}
     }
   }
-  // Boosters
-  for(const b of boosters){
-    if(Math.hypot(b.x-pb.x-pb.w/2,b.y-pb.y-PH/2)<b.r+s(16)&&!b.collected){
-      if(b.id==='shield'&&shield)continue;b.collected=true;applyBooster(b);
-    }
-  }
-  // Speed mods
+  for(const b of boosters){if(Math.hypot(b.x-pb.x-pb.w/2,b.y-pb.y-PH/2)<b.r+s(16)&&!b.collected){if(b.id==='shield'&&shield)continue;b.collected=true;applyBooster(b);}}
   for(const m of speedMods){
     if(Math.hypot(m.x-pb.x-pb.w/2,m.y-pb.y-PH/2)<m.r+s(16)&&!m.collected){
       m.collected=true;speedMod=Math.max(-2,Math.min(4,speedMod+m.delta));
@@ -556,10 +455,7 @@ function gameLoop(ts){
       setTimeout(()=>{if(boostLabel.includes('ШВИ')||boostLabel.includes('ПОВІЛ'))boostLabel='';},2000);
     }
   }
-
-  // ── DRAW ──────────────────────────────────────────────────
-  ctx.clearRect(0,0,W,H);
-  drawBG();
+  ctx.clearRect(0,0,W,H);drawBG();
   obstacles.forEach(o=>o.draw(o.x,o.y,o.w,o.h));
   apples.filter(a=>!a.collected).forEach(drawApple);
   boosters.filter(b=>!b.collected).forEach(drawBooster);
@@ -567,28 +463,19 @@ function gameLoop(ts){
   flyingEnemies.forEach(drawFlyingEnemy);
   if(boss)drawBoss();
   particles.forEach(p=>{ctx.save();ctx.globalAlpha=p.life;if(p.text){ctx.fillStyle=p.color;ctx.font=`bold ${s(13)}px Nunito`;ctx.textAlign='center';ctx.fillText(p.text,p.x,p.y);}else{ctx.fillStyle=p.color;ctx.beginPath();ctx.arc(p.x,p.y,p.size/2,0,Math.PI*2);ctx.fill();}ctx.restore();});
-  P.draw();
-  drawHUD();
-
+  P.draw();drawHUD();
   if(bossActive&&boss&&boss.phase!=='flee'){
     ctx.save();ctx.globalAlpha=.8+Math.sin(frame*.2)*.2;ctx.fillStyle='#ff1744';ctx.shadowColor='#ff1744';ctx.shadowBlur=20;
     ctx.font=`bold ${s(11)}px "Press Start 2P"`;ctx.textAlign='center';
     ctx.fillText(boss.phase==='enter'?'⚠ БОС! ⚠':'⚡ СТРИБАЙ або ПРИГНИСЬ!',W/2,s(55));ctx.restore();
   }
-
   requestAnimationFrame(gameLoop);
 }
 
-// ── CONTROLS ─────────────────────────────────────────────────
-document.addEventListener('keydown',e=>{
-  if(e.code==='Space'||e.code==='ArrowUp'){e.preventDefault();if(state==='playing')P.jump();else if(state==='idle')startGame();}
-});
-document.addEventListener('touchstart',e=>{
-  e.preventDefault();if(state==='playing')P.jump();else if(state==='idle')startGame();
-},{passive:false});
+document.addEventListener('keydown',e=>{if(e.code==='Space'||e.code==='ArrowUp'){e.preventDefault();if(state==='playing')P.jump();else if(state==='idle')startGame();}});
+document.addEventListener('touchstart',e=>{e.preventDefault();if(state==='playing')P.jump();else if(state==='idle')startGame();},{passive:false});
 document.addEventListener('mousedown',()=>{if(state==='playing')P.jump();else if(state==='idle')startGame();});
 
-// ── GAME FUNCTIONS ────────────────────────────────────────────
 function startGame(){
   document.getElementById('ovS').classList.add('hide');
   document.getElementById('ovE').classList.add('hide');
@@ -613,7 +500,6 @@ function endGame(){
   sendScore(sc);
 }
 
-// ── IDLE LOOP ─────────────────────────────────────────────────
 function idleLoop(ts){
   if(state!=='idle')return;
   if(!lastTime)lastTime=ts;const el=ts-lastTime;lastTime=ts;const idt=Math.min(el/16.667,3);
@@ -624,25 +510,40 @@ function idleLoop(ts){
   requestAnimationFrame(idleLoop);
 }
 
-// ── SEND SCORE ────────────────────────────────────────────────
+// ── SEND SCORE (захищена версія) ─────────────────────────────
 function getTg(){const p=new URLSearchParams(window.location.hash.substring(1));return{uid:p.get('tgid'),cid:p.get('tgchat'),mid:p.get('tgmsg'),iid:p.get('tginline'),cur:p.get('current_msg')};}
+
 async function sendScore(v){
-  const st=document.getElementById('sendSt');st.textContent='⏳ Зберігаємо...';
+  const st=document.getElementById('sendSt');
+  st.textContent='⏳ Зберігаємо...';
   const{uid,cid,mid,iid,cur}=getTg();
-  if(!uid){const dl='https://t.me/AGameMasterbot?start=runner_'+v;st.innerHTML='<a href="'+dl+'" style="color:#ffd740;font-size:8px;">👆 Зберегти результат</a>';st.className='st err';return;}
-  // Завжди зберігаємо в GAS напряму — це головне
+  if(!uid){
+    const dl='https://t.me/AGameMasterbot?start=runner_'+v;
+    st.innerHTML='<a href="'+dl+'" style="color:#ffd740;font-size:8px;">👆 Зберегти результат</a>';
+    st.className='st err';
+    return;
+  }
+  // Завжди зберігаємо в GAS — головне сховище результатів
   try{new Image().src=GAS+'?type=game_result&game=runner&score='+v+'&userId='+uid+'&secret=aclub2026runner&_t='+Date.now();}catch(e){}
-  // Паралельно Worker для Top Players (не критично якщо не спрацює)
+  // Паралельно Worker для Top Players в картці гри
   if((cid&&mid)||iid){
-    let q='user_id='+uid+'&score='+v;
+    let q='user_id='+uid+'&score='+v+'&wt=wrk_aclub_8x92kQpL';
     if(iid)q+='&inline_message_id='+encodeURIComponent(iid);
     else q+='&chat_id='+cid+'&message_id='+mid;
     if(cur)q+='&current_msg='+cur;
     try{fetch(WRK+'?'+q);}catch(e){}
   }
-  st.textContent='✅ Збережено!';st.className='st ok';
+  st.textContent='✅ Збережено!';
+  st.className='st ok';
 }
-function sendCoin(){const{uid}=getTg();if(!uid)return;try{new Image().src=GAS+'?type=apple_coin&game=runner&userId='+uid+'&secret=aclub2026runner&_t='+Date.now();}catch(e){}}
+
+// Червоне яблуко — захищений виклик
+function sendCoin(){
+  const{uid}=getTg();
+  if(!uid)return;
+  try{new Image().src=GAS+'?type=apple_coin&game=runner&userId='+uid+'&secret=aclub2026runner&_t='+Date.now();}catch(e){}
+}
+
 function handleSaveClick(e,u){e.preventDefault();const tg=window.Telegram&&window.Telegram.WebApp;if(tg&&tg.openTelegramLink){try{tg.openTelegramLink(u);return;}catch(x){}}window.location.href=u;}
 
 // ── INIT ──────────────────────────────────────────────────────
