@@ -486,6 +486,7 @@ function startGame(){
   boss=null;bossActive=false;redAppleSpawned=false;nextSpeedMod=400;
   nextApple=50;nextBooster=260;nextEnemy=9999;
   _sessionStart=Date.now(); // фіксуємо час старту для захисту
+  _submitDone=false;        // дозволяємо одну відправку за сесію
   P.init();state='playing';gameCount++;localStorage.setItem('ag',gameCount);
   requestAnimationFrame(gameLoop);
 }
@@ -514,31 +515,57 @@ function idleLoop(ts){
 // ── SEND SCORE (захищена версія з timestamp) ─────────────────
 function getTg(){const p=new URLSearchParams(window.location.hash.substring(1));return{uid:p.get('tgid'),cid:p.get('tgchat'),mid:p.get('tgmsg'),iid:p.get('tginline'),cur:p.get('current_msg')};}
 
-// Час старту поточної сесії гри (встановлюється в startGame)
+// Внутрішній userId — встановлюється один раз при завантаженні, недоступний ззовні
+const _tgData=(function(){const p=new URLSearchParams(window.location.hash.substring(1));return{uid:p.get('tgid'),cid:p.get('tgchat'),mid:p.get('tgmsg'),iid:p.get('tginline'),cur:p.get('current_msg')};})();
+
+// Час старту — 0 означає гра не запускалась
 let _sessionStart=0;
+// Лічильник спроб відправки — захист від повторних викликів
+let _submitDone=false;
 
 async function sendScore(v){
   const st=document.getElementById('sendSt');
   st.textContent='⏳ Зберігаємо...';
-  const{uid,cid,mid,iid,cur}=getTg();
+
+  // Захист 1: гра повинна бути запущена через startGame()
+  if(_sessionStart===0){
+    st.textContent='';
+    return;
+  }
+
+  // Захист 2: результат можна відправити тільки один раз за сесію
+  if(_submitDone){
+    st.textContent='';
+    return;
+  }
+  _submitDone=true;
+
+  // Захист 3: використовуємо внутрішній userId, не з консолі
+  const uid=_tgData.uid;
+  const cid=_tgData.cid;
+  const mid=_tgData.mid;
+  const iid=_tgData.iid;
+  const cur=_tgData.cur;
+
   if(!uid){
     const dl='https://t.me/AGameMasterbot?start=runner_'+v;
     st.innerHTML='<a href="'+dl+'" style="color:#ffd740;font-size:8px;">👆 Зберегти результат</a>';
     st.className='st err';
     return;
   }
-  // Перевірка часу сесії — захист від миттєвої накрутки
+
+  // Захист 4: перевірка часу сесії
   const elapsed=Math.floor((Date.now()-_sessionStart)/1000);
-  // Мінімум ~0.055 секунди на 1 очко (реальний максимум ~18 очок/сек)
   const minRequired=Math.floor(v*0.055);
-  if(_sessionStart>0 && elapsed < minRequired){
-    st.textContent='❌ Помилка збереження';
-    st.className='st err';
+  if(elapsed < minRequired){
+    st.textContent='';
     return;
   }
-  // Завжди зберігаємо в GAS — головне сховище результатів
+
+  // Відправляємо в GAS
   try{new Image().src=GAS+'?type=game_result&game=runner&score='+v+'&userId='+uid+'&secret=aclub2026runner&elapsed='+elapsed+'&_t='+Date.now();}catch(e){}
-  // Паралельно Worker для Top Players в картці гри
+
+  // Worker для Top Players
   if((cid&&mid)||iid){
     let q='user_id='+uid+'&score='+v+'&wt=wrk_aclub_8x92kQpL';
     if(iid)q+='&inline_message_id='+encodeURIComponent(iid);
@@ -550,10 +577,10 @@ async function sendScore(v){
   st.className='st ok';
 }
 
-// Червоне яблуко — захищений виклик
+// Червоне яблуко — використовує внутрішній uid
 function sendCoin(){
-  const{uid}=getTg();
-  if(!uid)return;
+  const uid=_tgData.uid;
+  if(!uid||_sessionStart===0)return;
   try{new Image().src=GAS+'?type=apple_coin&game=runner&userId='+uid+'&secret=aclub2026runner&_t='+Date.now();}catch(e){}
 }
 
