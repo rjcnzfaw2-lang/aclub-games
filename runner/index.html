@@ -631,7 +631,7 @@ async function sendScore(v){
   const{uid,cid,mid,iid,cur}=getTg();
   if(!uid){const dl='https://t.me/AGameMasterbot?start=runner_'+v;st.innerHTML='<a href="'+dl+'" style="color:#ffd740;font-size:8px;">👆 Зберегти результат</a>';st.className='st err';return;}
   // Завжди зберігаємо в GAS напряму — це головне
-  try{new Image().src=GAS+'?type=game_result&game=runner&score='+v+'&userId='+uid+'&_t='+Date.now();}catch(e){}
+  try{new Image().src=GAS+'?type=game_result&game=runner&score='+v+'&userId='+uid+'&secret=aclub2026runner&_t='+Date.now();}catch(e){}
   // Паралельно Worker для Top Players (не критично якщо не спрацює)
   if((cid&&mid)||iid){
     let q='user_id='+uid+'&score='+v;
@@ -642,7 +642,7 @@ async function sendScore(v){
   }
   st.textContent='✅ Збережено!';st.className='st ok';
 }
-function sendCoin(){const{uid}=getTg();if(!uid)return;try{new Image().src=GAS+'?type=apple_coin&game=runner&userId='+uid+'&_t='+Date.now();}catch(e){}}
+function sendCoin(){const{uid}=getTg();if(!uid)return;try{new Image().src=GAS+'?type=apple_coin&game=runner&userId='+uid+'&secret=aclub2026runner&_t='+Date.now();}catch(e){}}
 function handleSaveClick(e,u){e.preventDefault();const tg=window.Telegram&&window.Telegram.WebApp;if(tg&&tg.openTelegramLink){try{tg.openTelegramLink(u);return;}catch(x){}}window.location.href=u;}
 
 // ── INIT ──────────────────────────────────────────────────────
