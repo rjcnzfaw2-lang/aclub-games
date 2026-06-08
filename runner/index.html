@@ -485,6 +485,7 @@ function startGame(){
   shield=false;shieldTime=0;magnet=false;magnetTime=0;noApples=false;noApplesTime=0;
   boss=null;bossActive=false;redAppleSpawned=false;nextSpeedMod=400;
   nextApple=50;nextBooster=260;nextEnemy=9999;
+  _sessionStart=Date.now(); // фіксуємо час старту для захисту
   P.init();state='playing';gameCount++;localStorage.setItem('ag',gameCount);
   requestAnimationFrame(gameLoop);
 }
@@ -510,8 +511,11 @@ function idleLoop(ts){
   requestAnimationFrame(idleLoop);
 }
 
-// ── SEND SCORE (захищена версія) ─────────────────────────────
+// ── SEND SCORE (захищена версія з timestamp) ─────────────────
 function getTg(){const p=new URLSearchParams(window.location.hash.substring(1));return{uid:p.get('tgid'),cid:p.get('tgchat'),mid:p.get('tgmsg'),iid:p.get('tginline'),cur:p.get('current_msg')};}
+
+// Час старту поточної сесії гри (встановлюється в startGame)
+let _sessionStart=0;
 
 async function sendScore(v){
   const st=document.getElementById('sendSt');
@@ -523,8 +527,17 @@ async function sendScore(v){
     st.className='st err';
     return;
   }
+  // Перевірка часу сесії — захист від миттєвої накрутки
+  const elapsed=Math.floor((Date.now()-_sessionStart)/1000);
+  // Мінімум ~0.055 секунди на 1 очко (реальний максимум ~18 очок/сек)
+  const minRequired=Math.floor(v*0.055);
+  if(_sessionStart>0 && elapsed < minRequired){
+    st.textContent='❌ Помилка збереження';
+    st.className='st err';
+    return;
+  }
   // Завжди зберігаємо в GAS — головне сховище результатів
-  try{new Image().src=GAS+'?type=game_result&game=runner&score='+v+'&userId='+uid+'&secret=aclub2026runner&_t='+Date.now();}catch(e){}
+  try{new Image().src=GAS+'?type=game_result&game=runner&score='+v+'&userId='+uid+'&secret=aclub2026runner&elapsed='+elapsed+'&_t='+Date.now();}catch(e){}
   // Паралельно Worker для Top Players в картці гри
   if((cid&&mid)||iid){
     let q='user_id='+uid+'&score='+v+'&wt=wrk_aclub_8x92kQpL';
