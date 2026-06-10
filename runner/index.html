@@ -512,21 +512,11 @@ function idleLoop(ts){
   requestAnimationFrame(idleLoop);
 }
 
-// Читаємо параметри з URL — підтримуємо і ? і # для сумісності
-function getTg(){
-  const fromHash  = new URLSearchParams(window.location.hash.substring(1));
-  const fromQuery = new URLSearchParams(window.location.search);
-  const get = (k) => fromQuery.get(k) || fromHash.get(k);
-  return{uid:get('tgid'),cid:get('tgchat'),mid:get('tgmsg'),iid:get('tginline'),cur:get('current_msg')};
-}
+// ── SEND SCORE (захищена версія з timestamp) ─────────────────
+function getTg(){const p=new URLSearchParams(window.location.hash.substring(1));return{uid:p.get('tgid'),cid:p.get('tgchat'),mid:p.get('tgmsg'),iid:p.get('tginline'),cur:p.get('current_msg')};}
 
 // Внутрішній userId — встановлюється один раз при завантаженні, недоступний ззовні
-const _tgData=(function(){
-  const fromHash  = new URLSearchParams(window.location.hash.substring(1));
-  const fromQuery = new URLSearchParams(window.location.search);
-  const get = (k) => fromQuery.get(k) || fromHash.get(k);
-  return{uid:get('tgid'),cid:get('tgchat'),mid:get('tgmsg'),iid:get('tginline'),cur:get('current_msg')};
-})();
+const _tgData=(function(){const p=new URLSearchParams(window.location.hash.substring(1));return{uid:p.get('tgid'),cid:p.get('tgchat'),mid:p.get('tgmsg'),iid:p.get('tginline'),cur:p.get('current_msg')};})();
 
 // Час старту — 0 означає гра не запускалась
 let _sessionStart=0;
@@ -581,18 +571,9 @@ async function sendScore(v){
     try{
       const resp=await fetch(WRK+'?'+q);
       const data=await resp.json();
-      if(data.ok){
-        st.textContent='✅ Збережено!';st.className='st ok';
-      } else {
-        // Worker відхилив — fallback напряму в GAS
-        try{new Image().src=GAS+'?type=game_result&game=runner&score='+v+'&userId='+uid+'&secret=aclub2026runner&elapsed='+elapsed+'&_t='+Date.now();}catch(e){}
-        st.textContent='✅ Збережено!';st.className='st ok';
-      }
-    }catch(e){
-      // Мережева помилка — fallback напряму в GAS
-      try{new Image().src=GAS+'?type=game_result&game=runner&score='+v+'&userId='+uid+'&secret=aclub2026runner&elapsed='+elapsed+'&_t='+Date.now();}catch(e2){}
-      st.textContent='✅ Збережено!';st.className='st ok';
-    }
+      if(data.ok){st.textContent='✅ Збережено!';st.className='st ok';}
+      else{st.textContent='⚠️ Грай через Telegram!';st.className='st err';}
+    }catch(e){st.textContent='✅ Збережено!';st.className='st ok';}
   } else {
     // Гра відкрита не через Telegram — результат не зберігається
     st.textContent='⚠️ Відкрий гру через Telegram!';
