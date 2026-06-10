@@ -49,10 +49,10 @@ html,body{width:100%;height:100%;background:#050d1a;overflow:hidden;touch-action
   <div class="title">áCLUB<br>RUNNER</div>
   <div class="tips">
     🍏 <b>Яблука</b> +10 · 🍎 <b>Червоне</b> +1á-coin<br>
-    ✨ <b>Золотий вогник</b> — щит або магніт (3 сек)<br>
-    🔴 <b>Червоний вогник</b> — не збирай яблука<br>
-    👾 <b>Бос</b> — ▲ стрибай або — пригинайся!<br>
-    ⚡ <b>Вихор</b> — назавжди ±1 до швидкості
+    ✨ <b>Золотий вогник</b> — щит або магніт<br>
+    🔴 <b>Червоний вогник</b> — яблука недоступні<br>
+    👾 <b>Бос</b> — ▲ стрибай на нього!<br>
+    ⚡ <b>Вихор</b> — ±1 до швидкості назавжди
   </div>
   <div class="row">
     <div class="medal mg">🥇 20 á</div>
@@ -62,7 +62,7 @@ html,body{width:100%;height:100%;background:#050d1a;overflow:hidden;touch-action
   <div class="row">
     <div class="chip cg">🛡 ЩИТ</div>
     <div class="chip cg">🧲 МАГНІТ</div>
-    <div class="chip cb">🍏 НЕ ЗБИРАЙ</div>
+    <div class="chip cb">🔴 ЯБЛУКА НЕДОСТУПНІ</div>
   </div>
   <button class="btn" onclick="startGame()">▶ СТАРТ</button>
   <div style="font-size:9px;color:#546e7a;margin-top:-2px;">ТАП / ПРОБІЛ — СТРИБОК</div>
@@ -199,9 +199,11 @@ function drawHUD(){
   for(let i=0;i<3;i++){ctx.globalAlpha=i<lives?1:.2;ctx.font=`${fl}px Arial`;ctx.textAlign='center';ctx.fillText('💚',hx+i*fl*1.1,pad+hudH/2+2);}
   ctx.globalAlpha=1;
   ctx.fillStyle='#00e676';ctx.font=`bold ${fsp}px "Press Start 2P",monospace`;ctx.textAlign='right';
-  const bw=boostLabel?ctx.measureText(boostLabel).width+10:0;
-  ctx.fillText('x'+speed.toFixed(1),W-pad-12-bw,pad+hudH/2);
-  if(boostLabel){ctx.fillStyle='#fff';ctx.font=`bold ${fsp+2}px Nunito`;ctx.textAlign='right';ctx.fillText(boostLabel,W-pad-12,pad+hudH/2);}
+  ctx.fillText('x'+speed.toFixed(1),W-pad-12,pad+hudH/2);
+  if(boostLabel){
+    ctx.fillStyle='#ffd740';ctx.font=`bold ${fsp}px Nunito`;ctx.textAlign='center';
+    ctx.fillText(boostLabel,W/2,pad+hudH+s(14));
+  }
 }
 
 const OT=[
@@ -294,7 +296,7 @@ function trySpawnApple(){
   if(isRed)redAppleSpawned=true;
   apples.push({x:W+s(15),y:ay,r:s(9),isRed,collected:false,anim:0});
 }
-const BDEFS=[{id:'shield',label:'🛡 ЩИТ',good:true},{id:'magnet',label:'🧲 МАГНІТ',good:true},{id:'noapple',label:'🍏 НЕ ЗБИРАЙ',good:false}];
+const BDEFS=[{id:'shield',label:'🛡 ЩИТ',good:true},{id:'magnet',label:'🧲 МАГНІТ',good:true},{id:'noapple',label:'🔴 ЯБЛУКА НЕДОСТУПНІ',good:false}];
 function trySpawnBooster(){
   if(!isSafe(W+s(15)))return;
   const bt=BDEFS[Math.floor(Math.random()*BDEFS.length)];
@@ -451,7 +453,7 @@ function gameLoop(ts){
     if(Math.hypot(m.x-pb.x-pb.w/2,m.y-pb.y-PH/2)<m.r+s(16)&&!m.collected){
       m.collected=true;speedMod=Math.max(-2,Math.min(4,speedMod+m.delta));
       spawnT(m.x,m.y-s(20),m.delta>0?'⚡+1':' 🐢-1',m.color);spawnP(m.x,m.y,m.color,10);
-      boostLabel=m.delta>0?'⚡ ШВИДШЕ!':'🐢 ПОВІЛЬНІШЕ!';
+      boostLabel=m.delta>0?'⚡ ШВИДШЕ':'🐢 ПОВІЛЬНІШЕ';
       setTimeout(()=>{if(boostLabel.includes('ШВИ')||boostLabel.includes('ПОВІЛ'))boostLabel='';},2000);
     }
   }
