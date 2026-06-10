@@ -520,14 +520,6 @@ function getTg(){
   return{uid:get('tgid'),cid:get('tgchat'),mid:get('tgmsg'),iid:get('tginline'),cur:get('current_msg')};
 }
 
-// Внутрішній userId — встановлюється один раз при завантаженні, недоступний ззовні
-const _tgData=(function(){
-  const fromHash  = new URLSearchParams(window.location.hash.substring(1));
-  const fromQuery = new URLSearchParams(window.location.search);
-  const get = (k) => fromQuery.get(k) || fromHash.get(k);
-  return{uid:get('tgid'),cid:get('tgchat'),mid:get('tgmsg'),iid:get('tginline'),cur:get('current_msg')};
-})();
-
 // Час старту — 0 означає гра не запускалась
 let _sessionStart=0;
 // Лічильник спроб відправки — захист від повторних викликів
@@ -537,25 +529,12 @@ async function sendScore(v){
   const st=document.getElementById('sendSt');
   st.textContent='⏳ Зберігаємо...';
 
-  // Захист 1: гра повинна бути запущена через startGame()
-  if(_sessionStart===0){
-    st.textContent='';
-    return;
-  }
-
-  // Захист 2: результат можна відправити тільки один раз за сесію
-  if(_submitDone){
-    st.textContent='';
-    return;
-  }
+  if(_sessionStart===0){st.textContent='';return;}
+  if(_submitDone){st.textContent='';return;}
   _submitDone=true;
 
-  // Захист 3: використовуємо внутрішній userId, не з консолі
-  const uid=_tgData.uid;
-  const cid=_tgData.cid;
-  const mid=_tgData.mid;
-  const iid=_tgData.iid;
-  const cur=_tgData.cur;
+  // Читаємо параметри динамічно — на момент GAME OVER URL вже має параметри
+  const{uid,cid,mid,iid,cur}=getTg();
 
   if(!uid){
     const dl='https://t.me/AGameMasterbot?start=runner_'+v;
@@ -564,15 +543,10 @@ async function sendScore(v){
     return;
   }
 
-  // Захист 4: перевірка часу сесії
   const elapsed=Math.floor((Date.now()-_sessionStart)/1000);
   const minRequired=Math.floor(v*0.055);
-  if(elapsed < minRequired){
-    st.textContent='';
-    return;
-  }
+  if(elapsed < minRequired){st.textContent='';return;}
 
-  // Відправляємо ТІЛЬКИ через Worker — він верифікує через Telegram і потім викликає GAS
   if((cid&&mid)||iid){
     let q='user_id='+uid+'&score='+v+'&wt=wrk_aclub_8x92kQpL&elapsed='+elapsed;
     if(iid)q+='&inline_message_id='+encodeURIComponent(iid);
@@ -581,28 +555,23 @@ async function sendScore(v){
     try{
       const resp=await fetch(WRK+'?'+q);
       const data=await resp.json();
-      if(data.ok){
-        st.textContent='✅ Збережено!';st.className='st ok';
-      } else {
-        // Worker відхилив — fallback напряму в GAS
+      if(data.ok){st.textContent='✅ Збережено!';st.className='st ok';}
+      else{
         try{new Image().src=GAS+'?type=game_result&game=runner&score='+v+'&userId='+uid+'&secret=aclub2026runner&elapsed='+elapsed+'&_t='+Date.now();}catch(e){}
         st.textContent='✅ Збережено!';st.className='st ok';
       }
     }catch(e){
-      // Мережева помилка — fallback напряму в GAS
       try{new Image().src=GAS+'?type=game_result&game=runner&score='+v+'&userId='+uid+'&secret=aclub2026runner&elapsed='+elapsed+'&_t='+Date.now();}catch(e2){}
       st.textContent='✅ Збережено!';st.className='st ok';
     }
   } else {
-    // Гра відкрита не через Telegram — результат не зберігається
     st.textContent='⚠️ Відкрий гру через Telegram!';
     st.className='st err';
   }
 }
 
-// Червоне яблуко — використовує внутрішній uid
 function sendCoin(){
-  const uid=_tgData.uid;
+  const{uid}=getTg();
   if(!uid||_sessionStart===0)return;
   try{new Image().src=GAS+'?type=apple_coin&game=runner&userId='+uid+'&secret=aclub2026runner&_t='+Date.now();}catch(e){}
 }
