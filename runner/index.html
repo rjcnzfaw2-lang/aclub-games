@@ -571,9 +571,18 @@ async function sendScore(v){
     try{
       const resp=await fetch(WRK+'?'+q);
       const data=await resp.json();
-      if(data.ok){st.textContent='✅ Збережено!';st.className='st ok';}
-      else{st.textContent='⚠️ Грай через Telegram!';st.className='st err';}
-    }catch(e){st.textContent='✅ Збережено!';st.className='st ok';}
+      if(data.ok){
+        st.textContent='✅ Збережено!';st.className='st ok';
+      } else {
+        // Worker відхилив — fallback напряму в GAS
+        try{new Image().src=GAS+'?type=game_result&game=runner&score='+v+'&userId='+uid+'&secret=aclub2026runner&elapsed='+elapsed+'&_t='+Date.now();}catch(e){}
+        st.textContent='✅ Збережено!';st.className='st ok';
+      }
+    }catch(e){
+      // Мережева помилка — fallback напряму в GAS
+      try{new Image().src=GAS+'?type=game_result&game=runner&score='+v+'&userId='+uid+'&secret=aclub2026runner&elapsed='+elapsed+'&_t='+Date.now();}catch(e2){}
+      st.textContent='✅ Збережено!';st.className='st ok';
+    }
   } else {
     // Гра відкрита не через Telegram — результат не зберігається
     st.textContent='⚠️ Відкрий гру через Telegram!';
