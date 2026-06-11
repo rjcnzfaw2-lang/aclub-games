@@ -662,9 +662,8 @@ function updateBirdHelper(){
     if(boss&&(boss.phase==='fight'||boss.phase==='enter')){
       const dmg=BIRD_DAMAGE[_upgrades.bird];
       const bx=boss.x+boss.w/2, by=boss.y+boss.h/2;
-    const hudH2=Math.round(Math.max(52,64*SCALE))+16;
-    const bsx=W-s(35), bsy=hudH2+s(30);
-    _birdLaser={sx:bsx,sy:bsy,tx:bx,ty:by,active:true,timer:25,isBoss:true};
+    const bsx2=P.x+s(60), bsy2=FL-s(60);
+    _birdLaser={sx:bsx2,sy:bsy2,tx:bx,ty:by,active:true,timer:25,isBoss:true};
       boss.hp-=dmg;
       spawnP(bx,by,'#ffd740',12);
       spawnT(bx,by-s(20),'🦅-'+dmg,'#ffd740');
@@ -679,9 +678,8 @@ function updateBirdHelper(){
     const target=obstacles.find(o=>o.x>P.x+s(20));
     if(target){
       const tx=target.x+target.w/2, ty=target.y+target.h/2;
-      const hudH3=Math.round(Math.max(52,64*SCALE))+16;
-      const osx=W-s(35), osy=hudH3+s(30);
-      _birdLaser={sx:osx,sy:osy,tx,ty,active:true,timer:25,isBoss:false};
+      const osx2=P.x+s(60), osy2=FL-s(60);
+      _birdLaser={sx:osx2,sy:osy2,tx,ty,active:true,timer:25,isBoss:false};
       obstacles=obstacles.filter(o=>o!==target);
       score+=5;
       spawnP(tx,ty,'#ffd740',10);
@@ -696,10 +694,9 @@ function updateBirdHelper(){
 
 function drawBirdHelper(){
   if(_upgrades.bird<=0)return;
-  // Птах в правій частині екрану, між HUD і землею
-  const hudH=Math.round(Math.max(52,64*SCALE))+16;
-  const bx=W-s(35)+Math.sin(_birdAnim*.04)*s(12);
-  const by=hudH+s(30)+Math.sin(_birdAnim*.07)*s(8);
+  // Птах летить над персонажем, трохи правіше
+  const bx=P.x+s(60)+Math.sin(_birdAnim*.04)*s(20);
+  const by=FL-s(60)+Math.sin(_birdAnim*.07)*s(12);
   const flap=Math.sin(_birdAnim*.22)*s(10);
   const lvl=_upgrades.bird;
   ctx.save();
