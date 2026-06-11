@@ -408,7 +408,7 @@ function trySpawnBooster(){
 }
 function applyBooster(bt){
   boostLabel=bt.label;
-  if(bt.id==='shield'){if(!shield){shield=true;shieldTime=SHIELD_DUR[_upgrades.shield]||999999;}}
+  if(bt.id==='shield'){if(!shield){shield=true;shieldTime=SHIELD_DUR[_upgrades.shield]||SHIELD_DUR[0];}}
   if(bt.id==='magnet'){magnet=true;magnetTime=MAGNET_DUR[_upgrades.magnet]||(60*5);}
   if(bt.id==='noapple'){noApples=true;noApplesTime=BDUR;}
   spawnP(P.x+s(14),P.y,bt.good?'#ffd740':'#ff1744',8);
@@ -641,7 +641,7 @@ const _upgrades=(function(){
   return{bird:get('bird'),shield:get('shield'),magnet:get('magnet'),speed:get('uspeed')};
 })();
 
-const SHIELD_DUR  = [0, 5*60, 8*60, 12*60, 18*60, 25*60];
+const SHIELD_DUR  = [5*60, 7*60, 10*60, 15*60, 20*60, 30*60]; // індекс = рівень 0-5
 const MAGNET_DUR  = [0, 8*60, 12*60, 18*60, 25*60, 35*60];
 const START_SPEED = [4.5, 5.0, 5.5, 6.0, 7.0, 8.0];
 const BIRD_INTERVAL = [0, 10*60, 9*60, 8*60, 7*60, 5*60]; // фреймів між пострілами
