@@ -302,9 +302,24 @@ function drawHUD(){
     ctx.strokeStyle='#00e5ff';ctx.lineWidth=s(3);ctx.shadowColor='#00e5ff';ctx.shadowBlur=6;
     ctx.beginPath();ctx.arc(iconX,iconY,iconR,-.5*Math.PI,-.5*Math.PI+prog*2*Math.PI);ctx.stroke();
     ctx.shadowBlur=0;
-    // Іконка
-    ctx.font=`${s(14)}px Arial`;ctx.textAlign='center';ctx.textBaseline='middle';
-    ctx.fillText('🛡',iconX,iconY);
+    // Іконка щита намальована
+    ctx.fillStyle='#00e5ff';
+    ctx.beginPath();
+    ctx.moveTo(iconX,iconY-s(8));
+    ctx.lineTo(iconX+s(6),iconY-s(5));
+    ctx.lineTo(iconX+s(6),iconY+s(2));
+    ctx.quadraticCurveTo(iconX+s(6),iconY+s(8),iconX,iconY+s(10));
+    ctx.quadraticCurveTo(iconX-s(6),iconY+s(8),iconX-s(6),iconY+s(2));
+    ctx.lineTo(iconX-s(6),iconY-s(5));
+    ctx.closePath();ctx.fill();
+    ctx.fillStyle='rgba(0,20,40,.4)';
+    ctx.beginPath();
+    ctx.moveTo(iconX,iconY-s(6));ctx.lineTo(iconX+s(4),iconY-s(3));
+    ctx.lineTo(iconX+s(4),iconY+s(1));
+    ctx.quadraticCurveTo(iconX+s(4),iconY+s(6),iconX,iconY+s(8));
+    ctx.quadraticCurveTo(iconX-s(4),iconY+s(6),iconX-s(4),iconY+s(1));
+    ctx.lineTo(iconX-s(4),iconY-s(3));
+    ctx.closePath();ctx.fill();
     iconY += iconR*2 + s(6);
   }
 
