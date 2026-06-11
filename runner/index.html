@@ -688,6 +688,7 @@ document.addEventListener('mousedown',()=>{if(state==='playing')P.jump();else if
 function startGame(){
   document.getElementById('ovS').classList.add('hide');
   document.getElementById('ovE').classList.add('hide');
+  readUpgrades(); // читаємо апгрейди з URL динамічно
   resize();initBL();
   score=0;lives=3;speed=START_SPEED[_upgrades.speed]||4.5;frame=0;lastTime=0;dt=1;speedMod=0;boostLabel='';inv=0;
   obstacles=[];apples=[];boosters=[];particles=[];flyingEnemies=[];bossBullets=[];speedMods=[];
@@ -732,13 +733,14 @@ function getTg(){
   return{uid:get('tgid'),cid:get('tgchat'),mid:get('tgmsg'),iid:get('tginline'),cur:get('current_msg')};
 }
 
-// Апгрейди гравця з URL
-const _upgrades=(function(){
+// Апгрейди читаються динамічно при старті гри
+let _upgrades={bird:0,shield:0,magnet:0,speed:0};
+function readUpgrades(){
   const fromQuery=new URLSearchParams(window.location.search);
   const fromHash=new URLSearchParams(window.location.hash.substring(1));
   const get=(k)=>parseInt(fromQuery.get(k)||fromHash.get(k)||'0');
-  return{bird:get('bird'),shield:get('shield'),magnet:get('magnet'),speed:get('uspeed')};
-})();
+  _upgrades={bird:get('bird'),shield:get('shield'),magnet:get('magnet'),speed:get('uspeed')};
+}
 
 const SHIELD_DUR  = [5*60, 7*60, 10*60, 15*60, 20*60, 30*60]; // індекс = рівень 0-5
 const MAGNET_DUR  = [0, 8*60, 12*60, 18*60, 25*60, 35*60];
