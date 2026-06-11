@@ -428,7 +428,6 @@ function getBossZone(sc){const idx=Math.floor((sc-1000)/2000);if(idx<0)return nu
 function spawnBoss(level){
   bossActive=true;bossBullets=[];obstacles=[];flyingEnemies=[];
   let hp=level===1?100:(level===2?150:200);
-  // Якщо попередній бос не був добитий — переносимо залишок HP
   if(_bossRemainingHp>0&&_bossRemainingHp<hp){
     hp=_bossRemainingHp;
     _bossRemainingHp=0;
@@ -436,6 +435,7 @@ function spawnBoss(level){
     _bossRemainingHp=0;
   }
   boss={x:W+s(60),y:GY-s(70),w:s(60),h:s(70),hp,maxHp:hp,level,anim:0,phase:'enter',vx:-s(1.5),passed:false,shootTimer:180,pat:0};
+  inv=120; // 2 секунди інвулю при появі боса
   spawnP(W/2,H/2,'#ff1744',25);
 }
 function drawBoss(){
@@ -634,9 +634,18 @@ function gameLoop(ts){
     if(boss&&pb.x<bb.x+bb.w&&pb.x+pb.w>bb.x&&pb.y<bb.y+bb.h&&pb.y+pb.h>bb.y){if(!hitShield(null)){if(!hitPlayer())return;}}
   }
   const pb2=P.box();const pcx=pb2.x+pb2.w/2,pcy=pb2.y+PH/2;
+  const magnetRadius=s(180); // радіус магніту
   for(const a of apples){
     if(a.collected)continue;
-    if(magnet&&!noApples){const dx=pcx-a.x,dy=pcy-a.y;const dist=Math.sqrt(dx*dx+dy*dy)||1;const pullSpeed=dist*0.25*dt;a.x+=dx/dist*pullSpeed;a.y+=dy/dist*pullSpeed;}
+    if(magnet&&!noApples){
+      const dx=pcx-a.x,dy=pcy-a.y;
+      const dist=Math.sqrt(dx*dx+dy*dy)||1;
+      if(dist<magnetRadius){
+        const pullSpeed=Math.max(dist*0.3,s(8))*dt;
+        a.x+=dx/dist*pullSpeed;
+        a.y+=dy/dist*pullSpeed;
+      }
+    }
     const dist2=Math.hypot(a.x-pcx,a.y-pcy);
     if(dist2<a.r+s(14)&&!noApples){
       a.collected=true;
