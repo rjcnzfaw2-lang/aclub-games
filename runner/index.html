@@ -139,7 +139,14 @@ const P={
     ctx.save();ctx.globalAlpha=.18;ctx.fillStyle='#000';
     ctx.beginPath();ctx.ellipse(px+s(14),GY+s(2),s(12),s(3),0,0,Math.PI*2);ctx.fill();ctx.restore();
     if(shield){ctx.save();ctx.globalAlpha=.5;ctx.strokeStyle='#00e5ff';ctx.lineWidth=s(3);
-      ctx.shadowColor='#00e5ff';ctx.shadowBlur=14;ctx.beginPath();ctx.arc(px+s(14),py+PH/2,s(24),0,Math.PI*2);ctx.stroke();ctx.restore();}
+      ctx.shadowColor='#00e5ff';ctx.shadowBlur=14;ctx.beginPath();ctx.arc(px+s(14),py+PH/2,s(24),0,Math.PI*2);ctx.stroke();
+      // Таймер-дуга щита
+      const maxDur=SHIELD_DUR[_upgrades.shield]||SHIELD_DUR[0];
+      const prog=Math.min(shieldTime/maxDur,1);
+      ctx.globalAlpha=.9;ctx.strokeStyle='#00e5ff';ctx.lineWidth=s(2);
+      ctx.shadowBlur=6;
+      ctx.beginPath();ctx.arc(px+s(14),py+PH/2,s(28),-.5*Math.PI,-.5*Math.PI+prog*2*Math.PI);ctx.stroke();
+      ctx.restore();}
     const lo=run*s(5),arm=this.onGround?Math.cos(this.af*Math.PI/2)*s(4):-s(3);
     const d=noApples;
     const BC=d?'#ff1744':'#00c853',DC=d?'#c0003c':'#004d40',LC=d?'#ff6090':'#00a152',SK=d?'#ff6090':'#a5d6a7',HC=d?'#c0003c':'#00c853';
@@ -280,6 +287,30 @@ function drawHUD(){
   if(boostLabel){
     ctx.fillStyle='#ffd740';ctx.font=`bold ${fsp}px Nunito`;ctx.textAlign='center';
     ctx.fillText(boostLabel,W/2,pad+hudH+s(16));
+    // Таймер-дуга для щита
+    if(shield){
+      const maxDur=SHIELD_DUR[_upgrades.shield]||SHIELD_DUR[0];
+      const prog=Math.min(shieldTime/maxDur,1);
+      const cx=W/2, cy=pad+hudH+s(16);
+      const tw=ctx.measureText(boostLabel).width/2+s(8);
+      ctx.strokeStyle='rgba(0,229,255,.25)';ctx.lineWidth=s(3);
+      ctx.beginPath();ctx.arc(cx,cy-s(4),tw,0,Math.PI*2);ctx.stroke();
+      ctx.strokeStyle='#00e5ff';ctx.lineWidth=s(3);ctx.shadowColor='#00e5ff';ctx.shadowBlur=6;
+      ctx.beginPath();ctx.arc(cx,cy-s(4),tw,-.5*Math.PI,-.5*Math.PI+prog*2*Math.PI);ctx.stroke();
+      ctx.shadowBlur=0;
+    }
+    // Таймер-дуга для магніту
+    if(magnet&&!shield){
+      const maxDur=MAGNET_DUR[_upgrades.magnet]||(60*5);
+      const prog=Math.min(magnetTime/maxDur,1);
+      const cx=W/2, cy=pad+hudH+s(16);
+      const tw=ctx.measureText(boostLabel).width/2+s(8);
+      ctx.strokeStyle='rgba(255,215,64,.25)';ctx.lineWidth=s(3);
+      ctx.beginPath();ctx.arc(cx,cy-s(4),tw,0,Math.PI*2);ctx.stroke();
+      ctx.strokeStyle='#ffd740';ctx.lineWidth=s(3);ctx.shadowColor='#ffd740';ctx.shadowBlur=6;
+      ctx.beginPath();ctx.arc(cx,cy-s(4),tw,-.5*Math.PI,-.5*Math.PI+prog*2*Math.PI);ctx.stroke();
+      ctx.shadowBlur=0;
+    }
   }
 }
 
