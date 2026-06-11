@@ -382,17 +382,49 @@ function spawnGroup(){
 }
 function lastObsRight(){if(!obstacles.length)return -9999;const o=obstacles[obstacles.length-1];return o.x+o.w;}
 
+let _enemyBirdHp = 0; // залишок HP ворожого птаха між появами
+
 function trySpawnEnemy(){
+  if(score < 1500) return;
   const onScreen=obstacles.filter(o=>o.x>0&&o.x<W);
   if(onScreen.length>0||flyingEnemies.length>0)return;
   const ey=GY-s(58)-Math.floor(Math.random()*2)*s(18);
-  flyingEnemies.push({x:W+s(30),y:ey,homeX:W*.68+Math.random()*s(60),w:s(32),h:s(22),wa:0,phase:'enter',baseY:ey});
+  const hp = _enemyBirdHp > 0 && _enemyBirdHp < 10 ? _enemyBirdHp : 10;
+  _enemyBirdHp = 0;
+  flyingEnemies.push({
+    x:W+s(30),y:ey,homeX:W*.68+Math.random()*s(60),
+    w:s(32),h:s(22),wa:0,phase:'enter',baseY:ey,
+    hp, maxHp:10, actionTimer:0
+  });
 }
+
 function updateFlyingEnemy(e){
   e.wa+=dt;
   if(e.phase==='enter'){e.x-=speed*SCALE*dt;if(e.x<=e.homeX)e.phase='hover';}
   else{e.x=e.homeX+Math.sin(e.wa*.04)*s(8);}
   e.y=e.baseY+Math.sin(e.wa*.07)*s(3);
+
+  // Дії ворожого птаха кожні 3 секунди
+  if(e.phase==='hover'){
+    e.actionTimer+=dt;
+    if(e.actionTimer >= 180){ // кожні 3 сек
+      e.actionTimer=0;
+      const roll=Math.random();
+      if(roll<0.3){
+        // 30% — знищує всі яблука на екрані
+        apples=apples.filter(a=>a.collected);
+        spawnT(e.x+e.w/2,e.y-s(12),'🍎❌','#ff1744');
+      } else if(roll<0.6){
+        // 30% — знищує всі бафи на екрані
+        boosters=boosters.filter(b=>b.collected);
+        spawnT(e.x+e.w/2,e.y-s(12),'🛡❌','#ff1744');
+      } else if(roll<0.8&&_upgrades.bird>0&&_birdLaser){
+        // 50% від решти — відбиває лазер птаха (якщо активний)
+        _birdLaser=null;
+        spawnT(e.x+e.w/2,e.y-s(12),'🦅💥','#ff5722');
+      }
+    }
+  }
 }
 function drawFlyingEnemy(e){
   const px=e.x,py=e.y,flap=Math.sin(e.wa*.18)*s(10);
@@ -402,6 +434,12 @@ function drawFlyingEnemy(e){
   ctx.beginPath();ctx.moveTo(px+e.w/2,py+e.h*.32);ctx.quadraticCurveTo(px+e.w+s(2),py-s(9)+flap,px+e.w+s(6),py+s(4));ctx.quadraticCurveTo(px+e.w-s(8),py+s(9),px+e.w/2,py+e.h*.32);ctx.fill();
   ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(px+e.w*.34,py+e.h*.5,s(3),0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.arc(px+e.w*.66,py+e.h*.5,s(3),0,Math.PI*2);ctx.fill();
   ctx.fillStyle='#b71c1c';ctx.beginPath();ctx.arc(px+e.w*.38,py+e.h*.5,s(1.5),0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.arc(px+e.w*.62,py+e.h*.5,s(1.5),0,Math.PI*2);ctx.fill();
+
+  // HP бар
+  if(e.hp!==undefined){
+    ctx.fillStyle='#111';ctx.beginPath();ctx.roundRect(px,py-s(10),e.w,s(5),s(2));ctx.fill();
+    ctx.fillStyle='#ff1744';ctx.beginPath();ctx.roundRect(px,py-s(10),e.w*(e.hp/e.maxHp),s(5),s(2));ctx.fill();
+  }
 
   // Небезпечна зона — червона лінія від птаха до землі
   if(e.phase==='hover'){
@@ -583,7 +621,12 @@ function gameLoop(ts){
   apples.forEach(a=>{a.x-=spd;});apples=apples.filter(a=>a.x>-s(30)&&!a.collected);
   boosters.forEach(b=>{b.x-=spd;});boosters=boosters.filter(b=>b.x>-s(30)&&!b.collected);
   speedMods.forEach(m=>{m.x-=spd;});speedMods=speedMods.filter(m=>m.x>-s(30)&&!m.collected);
-  flyingEnemies.forEach(updateFlyingEnemy);flyingEnemies=flyingEnemies.filter(e=>e.x>-s(80));
+  flyingEnemies.forEach(updateFlyingEnemy);
+  // Зберігаємо HP ворожого птаха якщо вилетів за екран
+  flyingEnemies=flyingEnemies.filter(e=>{
+    if(e.x<-s(80)){if(e.hp>0)_enemyBirdHp=e.hp;return false;}
+    return true;
+  });
   if(boss&&boss.phase==='enter'){boss.x+=boss.vx*dt;if(boss.x<=W*.58)boss.phase='fight';}
   if(boss&&boss.phase==='fight'){
     boss.x+=Math.sin(boss.anim*.03)*s(1.2)*dt;boss.shootTimer-=dt;
@@ -695,7 +738,7 @@ function startGame(){
   shield=false;shieldTime=0;magnet=false;magnetTime=0;noApples=false;noApplesTime=0;
   boss=null;bossActive=false;redAppleSpawned=false;nextSpeedMod=400;
   _bossRemainingHp=0;
-  nextApple=50;nextBooster=260;nextEnemy=9999;
+  _enemyBirdHp=0;
   _sessionStart=Date.now();
   _submitDone=false;
   _birdTimer=0;
@@ -759,12 +802,30 @@ function updateBirdHelper(){
   const interval=BIRD_INTERVAL[_upgrades.bird];
   if(_birdTimer>=interval){
     _birdTimer=0;
-    // Спочатку атакуємо боса
+    // Пріоритет 1: ворожий птах
+    const enemyBird=flyingEnemies.find(e=>e.phase==='hover');
+    if(enemyBird){
+      const dmg=BIRD_DAMAGE[_upgrades.bird];
+      const bx2=enemyBird.x+enemyBird.w/2, by2=enemyBird.y+enemyBird.h/2;
+      const osx2=P.x+s(60), osy2=FL-s(220);
+      _birdLaser={sx:osx2,sy:osy2,tx:bx2,ty:by2,active:true,timer:25,isBoss:false};
+      enemyBird.hp-=dmg;
+      spawnP(bx2,by2,'#ffd740',8);
+      spawnT(bx2,by2-s(16),'🦅-'+dmg,'#ffd740');
+      if(enemyBird.hp<=0){
+        flyingEnemies=flyingEnemies.filter(e=>e!==enemyBird);
+        _enemyBirdHp=0;
+        score+=50;
+        spawnT(bx2,by2-s(20),'+50!','#ffd740');
+      }
+      return;
+    }
+    // Пріоритет 2: бос
     if(boss&&(boss.phase==='fight'||boss.phase==='enter')){
       const dmg=BIRD_DAMAGE[_upgrades.bird];
       const bx=boss.x+boss.w/2, by=boss.y+boss.h/2;
-    const bsx2=P.x+s(60), bsy2=FL-s(220);
-    _birdLaser={sx:bsx2,sy:bsy2,tx:bx,ty:by,active:true,timer:25,isBoss:true};
+      const bsx2=P.x+s(60), bsy2=FL-s(220);
+      _birdLaser={sx:bsx2,sy:bsy2,tx:bx,ty:by,active:true,timer:25,isBoss:true};
       boss.hp-=dmg;
       spawnP(bx,by,'#ffd740',12);
       spawnT(bx,by-s(20),'🦅-'+dmg,'#ffd740');
