@@ -285,30 +285,30 @@ function drawHUD(){
   ctx.fillStyle='#00e676';ctx.font=`bold ${fsp}px "Press Start 2P",monospace`;ctx.textAlign='right';
   ctx.fillText('x'+speed.toFixed(1),W-pad-12,pad+hudH/2);
   if(boostLabel){
+    const boostY=pad+hudH+s(22);
     ctx.fillStyle='#ffd740';ctx.font=`bold ${fsp}px Nunito`;ctx.textAlign='center';
-    ctx.fillText(boostLabel,W/2,pad+hudH+s(16));
+    ctx.fillText(boostLabel,W/2,boostY);
+    const tw=ctx.measureText(boostLabel).width/2+s(6);
+    const cx=W/2, cy=boostY-s(6);
+    const r=tw*0.7;
     // Таймер-дуга для щита
     if(shield){
       const maxDur=SHIELD_DUR[_upgrades.shield]||SHIELD_DUR[0];
       const prog=Math.min(shieldTime/maxDur,1);
-      const cx=W/2, cy=pad+hudH+s(16);
-      const tw=ctx.measureText(boostLabel).width/2+s(8);
-      ctx.strokeStyle='rgba(0,229,255,.25)';ctx.lineWidth=s(3);
-      ctx.beginPath();ctx.arc(cx,cy-s(4),tw,0,Math.PI*2);ctx.stroke();
-      ctx.strokeStyle='#00e5ff';ctx.lineWidth=s(3);ctx.shadowColor='#00e5ff';ctx.shadowBlur=6;
-      ctx.beginPath();ctx.arc(cx,cy-s(4),tw,-.5*Math.PI,-.5*Math.PI+prog*2*Math.PI);ctx.stroke();
+      ctx.strokeStyle='rgba(0,229,255,.2)';ctx.lineWidth=s(2);
+      ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.stroke();
+      ctx.strokeStyle='#00e5ff';ctx.lineWidth=s(2);ctx.shadowColor='#00e5ff';ctx.shadowBlur=4;
+      ctx.beginPath();ctx.arc(cx,cy,r,-.5*Math.PI,-.5*Math.PI+prog*2*Math.PI);ctx.stroke();
       ctx.shadowBlur=0;
     }
     // Таймер-дуга для магніту
     if(magnet&&!shield){
       const maxDur=MAGNET_DUR[_upgrades.magnet]||(60*5);
       const prog=Math.min(magnetTime/maxDur,1);
-      const cx=W/2, cy=pad+hudH+s(16);
-      const tw=ctx.measureText(boostLabel).width/2+s(8);
-      ctx.strokeStyle='rgba(255,215,64,.25)';ctx.lineWidth=s(3);
-      ctx.beginPath();ctx.arc(cx,cy-s(4),tw,0,Math.PI*2);ctx.stroke();
-      ctx.strokeStyle='#ffd740';ctx.lineWidth=s(3);ctx.shadowColor='#ffd740';ctx.shadowBlur=6;
-      ctx.beginPath();ctx.arc(cx,cy-s(4),tw,-.5*Math.PI,-.5*Math.PI+prog*2*Math.PI);ctx.stroke();
+      ctx.strokeStyle='rgba(255,215,64,.2)';ctx.lineWidth=s(2);
+      ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.stroke();
+      ctx.strokeStyle='#ffd740';ctx.lineWidth=s(2);ctx.shadowColor='#ffd740';ctx.shadowBlur=4;
+      ctx.beginPath();ctx.arc(cx,cy,r,-.5*Math.PI,-.5*Math.PI+prog*2*Math.PI);ctx.stroke();
       ctx.shadowBlur=0;
     }
   }
