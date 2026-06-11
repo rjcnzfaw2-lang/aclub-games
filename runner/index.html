@@ -285,13 +285,14 @@ function drawHUD(){
   ctx.fillStyle='#00e676';ctx.font=`bold ${fsp}px "Press Start 2P",monospace`;ctx.textAlign='right';
   ctx.fillText('x'+speed.toFixed(1),W-pad-12,pad+hudH/2);
   if(boostLabel){
-    const boostY=pad+hudH+s(22);
-    ctx.fillStyle='#ffd740';ctx.font=`bold ${fsp}px Nunito`;ctx.textAlign='center';
-    ctx.fillText(boostLabel,W/2,boostY);
-    const tw=ctx.measureText(boostLabel).width/2+s(6);
-    const cx=W/2, cy=boostY-s(6);
-    const r=tw*0.7;
-    // Таймер-дуга для щита
+    const bx=W-pad-12;
+    const by=pad+hudH+s(18);
+    const fbl=Math.round(Math.max(10,Math.min(12*SCALE,16)));
+    ctx.fillStyle='#ffd740';ctx.font=`bold ${fbl}px Nunito`;ctx.textAlign='right';
+    ctx.fillText(boostLabel,bx,by);
+    const tw=ctx.measureText(boostLabel).width/2+s(4);
+    const cx=bx-tw, cy=by-s(5);
+    const r=tw*0.65;
     if(shield){
       const maxDur=SHIELD_DUR[_upgrades.shield]||SHIELD_DUR[0];
       const prog=Math.min(shieldTime/maxDur,1);
@@ -301,7 +302,6 @@ function drawHUD(){
       ctx.beginPath();ctx.arc(cx,cy,r,-.5*Math.PI,-.5*Math.PI+prog*2*Math.PI);ctx.stroke();
       ctx.shadowBlur=0;
     }
-    // Таймер-дуга для магніту
     if(magnet&&!shield){
       const maxDur=MAGNET_DUR[_upgrades.magnet]||(60*5);
       const prog=Math.min(magnetTime/maxDur,1);
@@ -606,9 +606,10 @@ function gameLoop(ts){
   P.draw();drawHUD();
   updateBirdHelper();drawBirdHelper();
   if(bossActive&&boss&&boss.phase!=='flee'){
+    const hudH2=Math.round(Math.max(52,64*SCALE));
     ctx.save();ctx.globalAlpha=.8+Math.sin(frame*.2)*.2;ctx.fillStyle='#ff1744';ctx.shadowColor='#ff1744';ctx.shadowBlur=20;
     ctx.font=`bold ${s(11)}px "Press Start 2P"`;ctx.textAlign='center';
-    ctx.fillText(boss.phase==='enter'?'⚠ БОС! ⚠':'⚡ СТРИБАЙ або ПРИГНИСЬ!',W/2,s(55));ctx.restore();
+    ctx.fillText(boss.phase==='enter'?'⚠ БОС! ⚠':'⚡ СТРИБАЙ або УХИЛЯЙСЯ!',W/2,hudH2+s(30));ctx.restore();
   }
   requestAnimationFrame(gameLoop);
 }
