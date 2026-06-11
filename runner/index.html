@@ -51,7 +51,7 @@ html,body{width:100%;height:100%;background:#050d1a;overflow:hidden;touch-action
     🍏 <b>Яблука</b> +10 · 🍎 <b>Червоне</b> +1á-coin<br>
     ✨ <b>Золотий вогник</b> — щит або магніт<br>
     🔴 <b>Червоний вогник</b> — яблука недоступні<br>
-    👾 <b>Бос</b> — стрибай зверху або ухиляйся від куль!<br>
+    👾 <b>Бос</b> — ухиляйся від куль!<br>
     ⚡ <b>Вихор</b> — змінює швидкість назавжди (±1)
   </div>
   <div class="row">
@@ -172,19 +172,96 @@ function drawBld(b,x,al){
   else if(b.t==='m'){ctx.fillRect(x+s(8),by+s(40),s(8),b.hs-s(40));ctx.fillStyle=al>0.6?'#152840':'#2a4a6a';ctx.beginPath();ctx.moveTo(x+s(4),by+s(40));ctx.lineTo(x+s(12),by+s(15));ctx.lineTo(x+s(20),by+s(40));ctx.fill();ctx.beginPath();ctx.arc(x+s(12),by+s(12),s(5),0,Math.PI*2);ctx.fill();}
   ctx.restore();
 }
+// ── ЛОКАЦІЇ ──────────────────────────────────────────────────
+// 0=Ніч, 1=Захід, 2=Дощ, 3=Туман
+const LOCATIONS = [
+  { name:'🌙 Ніч',    sky:['#050d1a','#0d2137','#1a3a5c'], ground:['#1a3a1a','#0a1a0a'], line:'#00c853', bld1:'#0a1e30', bld2:'#1e3a5f', stars:true,  rain:false, fog:false },
+  { name:'🌅 Захід',  sky:['#1a0d2e','#3d1555','#6b2d6b'], ground:['#2a0f0f','#150505'], line:'#ff7043', bld1:'#1a0520', bld2:'#2d0a35', stars:false, rain:false, fog:false },
+  { name:'🌧 Дощ',    sky:['#0a0f14','#111a22','#1a2a35'], ground:['#0a150a','#050f05'], line:'#4fc3f7', bld1:'#070d12', bld2:'#0d1a22', stars:false, rain:true,  fog:false },
+  { name:'🌫 Туман',  sky:['#1a1a2e','#2a2a4a','#3a3a5a'], ground:['#151520','#0a0a15'], line:'#9c27b0', bld1:'#111120', bld2:'#1a1a30', stars:true,  rain:false, fog:true  },
+];
+let rainDrops=[];
+function initRain(){rainDrops=[];for(let i=0;i<80;i++)rainDrops.push({x:Math.random()*W,y:Math.random()*H,spd:8+Math.random()*6,len:8+Math.random()*12});}
+function getLoc(){return LOCATIONS[Math.floor(score/500)%LOCATIONS.length];}
+
+function drawBldLoc(b,x,al,loc){
+  const by=GY-b.hs;ctx.save();ctx.globalAlpha=al;
+  ctx.fillStyle=al>0.6?loc.bld1:loc.bld2;
+  if(b.t==='b'){ctx.fillRect(x,by,b.ws,b.hs);ctx.fillStyle='rgba(255,220,100,.08)';for(let wy=by+6;wy<GY-4;wy+=s(10))for(let wx=x+4;wx<x+b.ws-4;wx+=s(8))if((Math.floor(wx)*7+Math.floor(wy)*3)%11>4)ctx.fillRect(wx,wy,s(4),s(5));}
+  else if(b.t==='t'){ctx.fillRect(x+s(4),by,b.ws-s(8),b.hs);ctx.beginPath();ctx.moveTo(x,by+s(5));ctx.lineTo(x+b.ws/2,by-s(15));ctx.lineTo(x+b.ws,by+s(5));ctx.fill();}
+  else if(b.t==='d'){ctx.fillRect(x+s(5),by+s(20),b.ws-s(10),b.hs-s(20));ctx.beginPath();ctx.arc(x+b.ws/2,by+s(22),(b.ws-s(10))/2,Math.PI,0);ctx.fill();}
+  else if(b.t==='m'){ctx.fillRect(x+s(8),by+s(40),s(8),b.hs-s(40));ctx.fillStyle=al>0.6?loc.bld1:loc.bld2;ctx.beginPath();ctx.moveTo(x+s(4),by+s(40));ctx.lineTo(x+s(12),by+s(15));ctx.lineTo(x+s(20),by+s(40));ctx.fill();ctx.beginPath();ctx.arc(x+s(12),by+s(12),s(5),0,Math.PI*2);ctx.fill();}
+  ctx.restore();
+}
+
 function drawBG(){
-  const sg=ctx.createLinearGradient(0,0,0,GY);sg.addColorStop(0,'#050d1a');sg.addColorStop(.6,'#0d2137');sg.addColorStop(1,'#1a3a5c');
+  const loc=getLoc();
+  const sg=ctx.createLinearGradient(0,0,0,GY);
+  sg.addColorStop(0,loc.sky[0]);sg.addColorStop(.6,loc.sky[1]);sg.addColorStop(1,loc.sky[2]);
   ctx.fillStyle=sg;ctx.fillRect(0,0,W,H);
-  ctx.fillStyle='rgba(255,255,255,.45)';
-  for(let i=0;i<50;i++){const sx=((i*67+bgOff*.05)%W+W)%W,sy=(i*29)%(GY*.6),ss=(i%3)*.4+.3;ctx.beginPath();ctx.arc(sx,sy,ss,0,Math.PI*2);ctx.fill();}
-  ctx.save();ctx.shadowColor='#fffde7';ctx.shadowBlur=20;ctx.fillStyle='#fffde7';ctx.beginPath();ctx.arc(W-s(55),s(28),s(16),0,Math.PI*2);ctx.fill();ctx.fillStyle='#0d2137';ctx.beginPath();ctx.arc(W-s(49),s(24),s(12),0,Math.PI*2);ctx.fill();ctx.restore();
-  const b2=(bgOff*.28)%(W*4);for(const b of BL){const bx=((b.ox-b2)%(W*4)+W*4)%(W*4)-W*.3;if(bx>-200&&bx<W+200)drawBld(b,bx,.4);}
-  const b1=(bgOff*.55)%(W*4);for(let i=0;i<BL.length;i+=2){const b=BL[i];const bx=((b.ox-b1)%(W*4)+W*4)%(W*4)-W*.3;if(bx>-200&&bx<W+200)drawBld(b,bx,.8);}
-  const gg=ctx.createLinearGradient(0,GY,0,H);gg.addColorStop(0,'#1a3a1a');gg.addColorStop(1,'#0a1a0a');
+
+  // Зірки або ефекти неба
+  if(loc.stars){
+    ctx.fillStyle='rgba(255,255,255,.45)';
+    for(let i=0;i<50;i++){const sx=((i*67+bgOff*.05)%W+W)%W,sy=(i*29)%(GY*.6),ss=(i%3)*.4+.3;ctx.beginPath();ctx.arc(sx,sy,ss,0,Math.PI*2);ctx.fill();}
+  }
+  if(loc.sky[0]==='#1a0d2e'){
+    // Захід — темно-фіолетове небо з червоним сонцем біля горизонту
+    ctx.save();ctx.shadowColor='#ff7043';ctx.shadowBlur=30;
+    const sunY=GY-s(40);
+    ctx.fillStyle='#ff5722';ctx.beginPath();ctx.arc(W-s(80),sunY,s(18),0,Math.PI*2);ctx.fill();
+    // Промені
+    ctx.strokeStyle='rgba(255,112,67,.3)';ctx.lineWidth=s(30);
+    ctx.beginPath();ctx.moveTo(W-s(80),sunY);ctx.lineTo(W-s(80),GY);ctx.stroke();
+    ctx.restore();
+  } else if(loc.stars){
+    // Ніч/туман — місяць
+    ctx.save();ctx.shadowColor='#fffde7';ctx.shadowBlur=20;ctx.fillStyle='#fffde7';
+    ctx.beginPath();ctx.arc(W-s(55),s(28),s(16),0,Math.PI*2);ctx.fill();
+    ctx.fillStyle=loc.sky[1];ctx.beginPath();ctx.arc(W-s(49),s(24),s(12),0,Math.PI*2);ctx.fill();ctx.restore();
+  }
+
+  // Туман
+  if(loc.fog){
+    ctx.save();ctx.globalAlpha=0.15+Math.sin(bgOff*.001)*.05;
+    const fg=ctx.createLinearGradient(0,GY*.3,0,GY);fg.addColorStop(0,'transparent');fg.addColorStop(1,'#9c27b0');
+    ctx.fillStyle=fg;ctx.fillRect(0,GY*.3,W,GY*.7);ctx.restore();
+  }
+
+  // Будівлі
+  const b2=(bgOff*.28)%(W*4);for(const b of BL){const bx=((b.ox-b2)%(W*4)+W*4)%(W*4)-W*.3;if(bx>-200&&bx<W+200)drawBldLoc(b,bx,.4,loc);}
+  const b1=(bgOff*.55)%(W*4);for(let i=0;i<BL.length;i+=2){const b=BL[i];const bx=((b.ox-b1)%(W*4)+W*4)%(W*4)-W*.3;if(bx>-200&&bx<W+200)drawBldLoc(b,bx,.8,loc);}
+
+  // Земля
+  const gg=ctx.createLinearGradient(0,GY,0,H);gg.addColorStop(0,loc.ground[0]);gg.addColorStop(1,loc.ground[1]);
   ctx.fillStyle=gg;ctx.fillRect(0,GY,W,H-GY);
-  ctx.save();ctx.strokeStyle='#00c853';ctx.lineWidth=2;ctx.shadowColor='#00c853';ctx.shadowBlur=8;ctx.beginPath();ctx.moveTo(0,GY);ctx.lineTo(W,GY);ctx.stroke();ctx.restore();
-  ctx.strokeStyle='rgba(0,200,83,.07)';ctx.lineWidth=1;const go=grOff%s(48);
+  ctx.save();ctx.strokeStyle=loc.line;ctx.lineWidth=2;ctx.shadowColor=loc.line;ctx.shadowBlur=8;
+  ctx.beginPath();ctx.moveTo(0,GY);ctx.lineTo(W,GY);ctx.stroke();ctx.restore();
+  ctx.strokeStyle=loc.line.replace(')',`,.07)`).replace('rgb','rgba');
+  ctx.lineWidth=1;const go=grOff%s(48);
   for(let gx=-go;gx<W;gx+=s(48)){ctx.beginPath();ctx.moveTo(gx,GY);ctx.lineTo(gx,H);ctx.stroke();}
+
+  // Дощ
+  if(loc.rain){
+    if(!rainDrops.length)initRain();
+    ctx.save();ctx.strokeStyle='rgba(100,180,255,.5)';ctx.lineWidth=1;
+    rainDrops.forEach(d=>{
+      ctx.beginPath();ctx.moveTo(d.x,d.y);ctx.lineTo(d.x-2,d.y+d.len);ctx.stroke();
+      d.y+=d.spd*dt;d.x-=dt;
+      if(d.y>H){d.y=-10;d.x=Math.random()*W;}
+    });
+    ctx.restore();
+  }
+
+  // Назва локації при переході (кожні 500 очок)
+  const locIdx=Math.floor(score/500)%LOCATIONS.length;
+  const locBoundary=locIdx*500;
+  if(score-locBoundary<3){
+    ctx.save();ctx.globalAlpha=Math.max(0,1-(score-locBoundary)/3);
+    ctx.fillStyle='rgba(0,0,0,.6)';ctx.fillRect(0,H/2-s(20),W,s(40));
+    ctx.fillStyle='#fff';ctx.font=`bold ${s(14)}px "Press Start 2P"`;ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText(loc.name,W/2,H/2);ctx.restore();
+  }
 }
 function drawHUD(){
   const fs=Math.round(Math.max(13,Math.min(18*SCALE,22)));
@@ -253,7 +330,24 @@ function drawFlyingEnemy(e){
   ctx.beginPath();ctx.moveTo(px+e.w/2,py+e.h*.32);ctx.quadraticCurveTo(px+e.w+s(2),py-s(9)+flap,px+e.w+s(6),py+s(4));ctx.quadraticCurveTo(px+e.w-s(8),py+s(9),px+e.w/2,py+e.h*.32);ctx.fill();
   ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(px+e.w*.34,py+e.h*.5,s(3),0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.arc(px+e.w*.66,py+e.h*.5,s(3),0,Math.PI*2);ctx.fill();
   ctx.fillStyle='#b71c1c';ctx.beginPath();ctx.arc(px+e.w*.38,py+e.h*.5,s(1.5),0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.arc(px+e.w*.62,py+e.h*.5,s(1.5),0,Math.PI*2);ctx.fill();
-  if(e.phase==='hover'){ctx.save();ctx.fillStyle='#ff5252';ctx.font=`bold ${s(9)}px "Press Start 2P"`;ctx.textAlign='center';ctx.shadowColor='#f00';ctx.shadowBlur=6;ctx.fillText('▲',px+e.w/2,py-s(10));ctx.restore();}
+
+  // Небезпечна зона — червона лінія від птаха до землі
+  if(e.phase==='hover'){
+    ctx.save();
+    ctx.globalAlpha=0.15+Math.sin(e.wa*.1)*.05;
+    ctx.fillStyle='#ff1744';
+    ctx.fillRect(px+e.w*.2,py+e.h,e.w*.6,GY-(py+e.h));
+    ctx.restore();
+    // Попередження зверху
+    ctx.save();ctx.globalAlpha=.85+Math.sin(e.wa*.15)*.15;
+    ctx.fillStyle='#ff1744';ctx.font=`bold ${s(8)}px "Press Start 2P"`;ctx.textAlign='center';
+    ctx.shadowColor='#ff1744';ctx.shadowBlur=8;
+    ctx.fillText('⚠',px+e.w/2,py-s(6));ctx.restore();
+    // Стрілка вниз що попереджає
+    ctx.save();ctx.strokeStyle='#ff1744';ctx.lineWidth=s(1.5);ctx.globalAlpha=0.5;
+    ctx.beginPath();ctx.moveTo(px+e.w/2,py+e.h+s(4));ctx.lineTo(px+e.w/2,GY-s(4));ctx.stroke();
+    ctx.restore();
+  }
 }
 
 function getBossZone(sc){const idx=Math.floor((sc-1000)/2000);if(idx<0)return null;return{start:1000+idx*2000,end:1300+idx*2000,level:idx+1};}
@@ -304,8 +398,8 @@ function trySpawnBooster(){
 }
 function applyBooster(bt){
   boostLabel=bt.label;
-  if(bt.id==='shield'){if(!shield){shield=true;shieldTime=999999;}}
-  if(bt.id==='magnet'){magnet=true;magnetTime=60*5;}
+  if(bt.id==='shield'){if(!shield){shield=true;shieldTime=SHIELD_DUR[_upgrades.shield]||999999;}}
+  if(bt.id==='magnet'){magnet=true;magnetTime=MAGNET_DUR[_upgrades.magnet]||(60*5);}
   if(bt.id==='noapple'){noApples=true;noApplesTime=BDUR;}
   spawnP(P.x+s(14),P.y,bt.good?'#ffd740':'#ff1744',8);
 }
@@ -466,6 +560,7 @@ function gameLoop(ts){
   if(boss)drawBoss();
   particles.forEach(p=>{ctx.save();ctx.globalAlpha=p.life;if(p.text){ctx.fillStyle=p.color;ctx.font=`bold ${s(13)}px Nunito`;ctx.textAlign='center';ctx.fillText(p.text,p.x,p.y);}else{ctx.fillStyle=p.color;ctx.beginPath();ctx.arc(p.x,p.y,p.size/2,0,Math.PI*2);ctx.fill();}ctx.restore();});
   P.draw();drawHUD();
+  updateBirdHelper();drawBirdHelper();
   if(bossActive&&boss&&boss.phase!=='flee'){
     ctx.save();ctx.globalAlpha=.8+Math.sin(frame*.2)*.2;ctx.fillStyle='#ff1744';ctx.shadowColor='#ff1744';ctx.shadowBlur=20;
     ctx.font=`bold ${s(11)}px "Press Start 2P"`;ctx.textAlign='center';
@@ -482,13 +577,15 @@ function startGame(){
   document.getElementById('ovS').classList.add('hide');
   document.getElementById('ovE').classList.add('hide');
   resize();initBL();
-  score=0;lives=3;speed=4.5;frame=0;lastTime=0;dt=1;speedMod=0;boostLabel='';inv=0;
+  score=0;lives=3;speed=START_SPEED[_upgrades.speed]||4.5;frame=0;lastTime=0;dt=1;speedMod=0;boostLabel='';inv=0;
   obstacles=[];apples=[];boosters=[];particles=[];flyingEnemies=[];bossBullets=[];speedMods=[];
   shield=false;shieldTime=0;magnet=false;magnetTime=0;noApples=false;noApplesTime=0;
   boss=null;bossActive=false;redAppleSpawned=false;nextSpeedMod=400;
   nextApple=50;nextBooster=260;nextEnemy=9999;
-  _sessionStart=Date.now(); // фіксуємо час старту для захисту
-  _submitDone=false;        // дозволяємо одну відправку за сесію
+  _sessionStart=Date.now();
+  _submitDone=false;
+  _birdTimer=0;
+  _birdLaser=null;
   P.init();state='playing';gameCount++;localStorage.setItem('ag',gameCount);
   requestAnimationFrame(gameLoop);
 }
@@ -520,6 +617,74 @@ function getTg(){
   const fromQuery = new URLSearchParams(window.location.search);
   const get = (k) => fromQuery.get(k) || fromHash.get(k);
   return{uid:get('tgid'),cid:get('tgchat'),mid:get('tgmsg'),iid:get('tginline'),cur:get('current_msg')};
+}
+
+// Апгрейди гравця з URL
+const _upgrades=(function(){
+  const fromQuery=new URLSearchParams(window.location.search);
+  const fromHash=new URLSearchParams(window.location.hash.substring(1));
+  const get=(k)=>parseInt(fromQuery.get(k)||fromHash.get(k)||'0');
+  return{bird:get('bird'),shield:get('shield'),magnet:get('magnet'),speed:get('uspeed')};
+})();
+
+// Тривалість щита залежно від рівня (сек * 60 = фреймів)
+const SHIELD_DUR  = [0, 5*60, 8*60, 12*60, 18*60, 25*60];
+const MAGNET_DUR  = [0, 8*60, 12*60, 18*60, 25*60, 35*60];
+const START_SPEED = [4.5, 5.0, 5.5, 6.0, 7.0, 8.0];
+// Інтервал птаха (сек * 60)
+const BIRD_INTERVAL = [0, 10*60, 9*60, 8*60, 7*60, 5*60];
+
+// Птах-помічник
+let _birdTimer=0;
+let _birdLaser=null; // {x, y, w, active, timer}
+
+function updateBirdHelper(){
+  if(_upgrades.bird<=0)return;
+  _birdTimer++;
+  const interval=BIRD_INTERVAL[_upgrades.bird];
+  if(_birdTimer>=interval){
+    _birdTimer=0;
+    // Шукаємо найближчу перешкоду
+    const target=obstacles.find(o=>o.x>P.x);
+    if(target){
+      _birdLaser={x:W*0.15,y:target.y+target.h/2,targetX:target.x+target.w/2,active:true,timer:20,row:obstacles.indexOf(target)};
+      // Знищуємо перешкоду
+      obstacles=obstacles.filter(o=>o!==target);
+      spawnP(_birdLaser.targetX,_birdLaser.y,'#ff1744',15);
+    }
+  }
+  if(_birdLaser&&_birdLaser.active){
+    _birdLaser.timer-=dt;
+    if(_birdLaser.timer<=0)_birdLaser=null;
+  }
+}
+
+function drawBirdHelper(){
+  if(_upgrades.bird<=0)return;
+  // Малюємо птаха у верхньому лівому куті
+  const bx=s(20),by=s(55)+s(10);
+  const flap=Math.sin(frame*.15)*s(6);
+  ctx.save();
+  ctx.fillStyle='#ffd740';
+  ctx.beginPath();ctx.ellipse(bx+s(10),by+s(6),s(10),s(6),0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#ff9800';
+  ctx.beginPath();ctx.moveTo(bx+s(10),by+s(3));ctx.quadraticCurveTo(bx-s(2),by-s(6)+flap,bx-s(5),by+s(2));ctx.quadraticCurveTo(bx+s(5),by+s(7),bx+s(10),by+s(3));ctx.fill();
+  ctx.beginPath();ctx.moveTo(bx+s(10),by+s(3));ctx.quadraticCurveTo(bx+s(22),by-s(6)+flap,bx+s(25),by+s(2));ctx.quadraticCurveTo(bx+s(15),by+s(7),bx+s(10),by+s(3));ctx.fill();
+  ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(bx+s(8),by+s(5),s(2),0,Math.PI*2);ctx.fill();
+  // Таймер до наступного пострілу
+  const prog=_birdTimer/BIRD_INTERVAL[_upgrades.bird];
+  ctx.strokeStyle='rgba(255,215,64,.3)';ctx.lineWidth=s(2);
+  ctx.beginPath();ctx.arc(bx+s(10),by+s(6),s(14),-.5*Math.PI,-.5*Math.PI+prog*2*Math.PI);ctx.stroke();
+  ctx.strokeStyle='#ffd740';ctx.lineWidth=s(2);
+  ctx.beginPath();ctx.arc(bx+s(10),by+s(6),s(14),-.5*Math.PI,-.5*Math.PI+prog*2*Math.PI);ctx.stroke();
+  ctx.restore();
+  // Лазер
+  if(_birdLaser&&_birdLaser.active){
+    ctx.save();ctx.globalAlpha=_birdLaser.timer/20;
+    ctx.strokeStyle='#ff1744';ctx.lineWidth=s(3);ctx.shadowColor='#ff1744';ctx.shadowBlur=12;
+    ctx.beginPath();ctx.moveTo(bx+s(20),by+s(6));ctx.lineTo(_birdLaser.targetX,_birdLaser.y);ctx.stroke();
+    ctx.restore();
+  }
 }
 
 // Час старту — 0 означає гра не запускалась
