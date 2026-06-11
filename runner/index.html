@@ -826,8 +826,8 @@ async function sendScore(v){
     return;
   }
 
-  const elapsed=Math.floor((Date.now()-_sessionStart)/1000);
-  const minRequired=Math.floor(v*0.055);
+  const elapsed=Math.min(Math.floor((Date.now()-_sessionStart)/1000), 9999);
+  const minRequired=Math.floor(v*0.04);
   if(elapsed < minRequired){st.textContent='';return;}
 
   if((cid&&mid)||iid){
