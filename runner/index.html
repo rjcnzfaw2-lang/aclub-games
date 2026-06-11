@@ -264,10 +264,10 @@ function drawBG(){
   }
 }
 function drawHUD(){
-  const fs=Math.round(Math.max(13,Math.min(18*SCALE,22)));
-  const fl=Math.round(Math.max(18,Math.min(22*SCALE,28)));
-  const fsp=Math.round(Math.max(11,Math.min(14*SCALE,18)));
-  const hudH=Math.round(Math.max(44,54*SCALE)),pad=8;
+  const fs=Math.round(Math.max(16,Math.min(22*SCALE,28)));
+  const fl=Math.round(Math.max(22,Math.min(28*SCALE,36)));
+  const fsp=Math.round(Math.max(14,Math.min(18*SCALE,24)));
+  const hudH=Math.round(Math.max(52,64*SCALE)),pad=8;
   ctx.fillStyle='rgba(5,15,30,.9)';ctx.beginPath();ctx.roundRect(pad,pad,W-pad*2,hudH,8);ctx.fill();
   ctx.strokeStyle='rgba(0,200,83,.25)';ctx.lineWidth=1;ctx.beginPath();ctx.roundRect(pad,pad,W-pad*2,hudH,8);ctx.stroke();
   ctx.fillStyle='#ffd740';ctx.font=`bold ${fs}px "Press Start 2P",monospace`;ctx.textAlign='left';ctx.textBaseline='middle';
@@ -279,7 +279,7 @@ function drawHUD(){
   ctx.fillText('x'+speed.toFixed(1),W-pad-12,pad+hudH/2);
   if(boostLabel){
     ctx.fillStyle='#ffd740';ctx.font=`bold ${fsp}px Nunito`;ctx.textAlign='center';
-    ctx.fillText(boostLabel,W/2,pad+hudH+s(14));
+    ctx.fillText(boostLabel,W/2,pad+hudH+s(16));
   }
 }
 
@@ -379,9 +379,10 @@ function drawBoss(){
   ctx.beginPath();ctx.arc(px+boss.w*.7,py+boss.h*.37+bob,s(8),0,Math.PI*2);ctx.fill();ctx.restore();
   ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(px+boss.w*.33,py+boss.h*.37+bob,s(3.5),0,Math.PI*2);ctx.fill();
   ctx.beginPath();ctx.arc(px+boss.w*.67,py+boss.h*.37+bob,s(3.5),0,Math.PI*2);ctx.fill();
-  ctx.fillStyle='#111';ctx.beginPath();ctx.roundRect(px-s(10),py+bob-s(16),boss.w+s(20),s(8),s(3));ctx.fill();
-  ctx.fillStyle=boss.hp/boss.maxHp>.5?'#ff1744':'#ff6d00';ctx.beginPath();ctx.roundRect(px-s(10),py+bob-s(16),(boss.w+s(20))*(boss.hp/boss.maxHp),s(8),s(3));ctx.fill();
-  ctx.fillStyle='#fff';ctx.font=`bold ${s(7)}px Nunito`;ctx.textAlign='center';ctx.fillText(`👾 HP:${boss.hp}/${boss.maxHp}`,px+boss.w/2,py+bob-s(19));
+  ctx.fillStyle='#111';ctx.beginPath();ctx.roundRect(px-s(10),py+bob-s(20),boss.w+s(20),s(12),s(4));ctx.fill();
+  ctx.fillStyle=boss.hp/boss.maxHp>.5?'#ff1744':'#ff6d00';ctx.beginPath();ctx.roundRect(px-s(10),py+bob-s(20),(boss.w+s(20))*(boss.hp/boss.maxHp),s(12),s(4));ctx.fill();
+  ctx.fillStyle='#fff';ctx.font=`bold ${s(10)}px Nunito`;ctx.textAlign='center';
+  ctx.fillText(`👾 HP: ${boss.hp}/${boss.maxHp}`,px+boss.w/2,py+bob-s(24));
   for(const b of bossBullets){
     ctx.save();ctx.shadowColor='#ff6d00';ctx.shadowBlur=12;
     ctx.fillStyle='rgba(255,109,0,.3)';ctx.beginPath();ctx.arc(b.x,b.y,b.r+s(4),0,Math.PI*2);ctx.fill();
@@ -661,7 +662,9 @@ function updateBirdHelper(){
     if(boss&&(boss.phase==='fight'||boss.phase==='enter')){
       const dmg=BIRD_DAMAGE[_upgrades.bird];
       const bx=boss.x+boss.w/2, by=boss.y+boss.h/2;
-      _birdLaser={sx:W*0.5,sy:80,tx:bx,ty:by,active:true,timer:25,isBoss:true};
+    const hudH2=Math.round(Math.max(52,64*SCALE))+16;
+    const bsx=W-s(35), bsy=hudH2+s(30);
+    _birdLaser={sx:bsx,sy:bsy,tx:bx,ty:by,active:true,timer:25,isBoss:true};
       boss.hp-=dmg;
       spawnP(bx,by,'#ffd740',12);
       spawnT(bx,by-s(20),'🦅-'+dmg,'#ffd740');
@@ -676,7 +679,9 @@ function updateBirdHelper(){
     const target=obstacles.find(o=>o.x>P.x+s(20));
     if(target){
       const tx=target.x+target.w/2, ty=target.y+target.h/2;
-      _birdLaser={sx:W*0.5,sy:80,tx,ty,active:true,timer:25,isBoss:false};
+      const hudH3=Math.round(Math.max(52,64*SCALE))+16;
+      const osx=W-s(35), osy=hudH3+s(30);
+      _birdLaser={sx:osx,sy:osy,tx,ty,active:true,timer:25,isBoss:false};
       obstacles=obstacles.filter(o=>o!==target);
       score+=5;
       spawnP(tx,ty,'#ffd740',10);
@@ -691,9 +696,10 @@ function updateBirdHelper(){
 
 function drawBirdHelper(){
   if(_upgrades.bird<=0)return;
-  // Птах летить по центру-верху екрану
-  const bx=W*0.5+Math.sin(_birdAnim*.04)*s(30);
-  const by=s(55)+s(18)+Math.sin(_birdAnim*.07)*s(6);
+  // Птах в правій частині екрану, між HUD і землею
+  const hudH=Math.round(Math.max(52,64*SCALE))+16;
+  const bx=W-s(35)+Math.sin(_birdAnim*.04)*s(12);
+  const by=hudH+s(30)+Math.sin(_birdAnim*.07)*s(8);
   const flap=Math.sin(_birdAnim*.22)*s(10);
   const lvl=_upgrades.bird;
   ctx.save();
