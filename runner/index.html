@@ -91,11 +91,12 @@ let dt=1,lastTime=0,speedMod=0,boostLabel='',inv=0;
 let obstacles=[],apples=[],boosters=[],particles=[],flyingEnemies=[],bossBullets=[],speedMods=[];
 let bgOff=0,grOff=0;
 let shield=false,shieldTime=0,magnet=false,magnetTime=0,noApples=false,noApplesTime=0;
+let wind=false,windTime=0; // дебаф вітру — блокує подвійний стрибок
+const WIND_DUR=5*60; // 5 секунд
 let boss=null,bossActive=false;
 let nextSpeedMod=400,nextApple=0,nextBooster=0,nextEnemy=0;
 let redAppleSpawned=false;
 let gameCount=parseInt(localStorage.getItem('ag')||'0');
-const BDUR=60*3;
 let W,H,GY,PH,FL,SCALE;
 
 function resize(){
@@ -117,7 +118,8 @@ const P={
   y:0,vy:0,onGround:true,jc:0,af:0,at:0,
   init(){this.y=FL;this.vy=0;this.onGround=true;this.jc=0;this.af=0;this.at=0;},
   jump(){
-    if(this.jc<2){
+    const maxJumps = wind ? 1 : 2;
+    if(this.jc<maxJumps){
       const h1=90*SCALE,h2=60*SCALE;
       this.vy=this.jc===0?-Math.sqrt(2*0.44*h1):-Math.sqrt(2*0.44*h2);
       this.onGround=false;this.jc++;spawnP(this.x+s(14),this.y+PH,'#00e676',5);
@@ -131,7 +133,7 @@ const P={
     if(shieldTime>0){shieldTime-=dt;if(shieldTime<=0){shield=false;boostLabel='';}}
     if(magnetTime>0){magnetTime-=dt;if(magnetTime<=0){magnet=false;boostLabel='';}}
     if(noApplesTime>0){noApplesTime-=dt;if(noApplesTime<=0){noApples=false;boostLabel='';}}
-  },
+    if(windTime>0){windTime-=dt;if(windTime<=0){wind=false;}}  },
   draw(){
     if(inv>0&&Math.floor(inv/4)%2===0)return;
     const px=this.x,py=Math.round(this.y);
@@ -352,6 +354,20 @@ function drawHUD(){
     ctx.beginPath();ctx.moveTo(iconX-s(4),iconY-s(4));ctx.lineTo(iconX+s(4),iconY+s(4));ctx.stroke();
     ctx.beginPath();ctx.moveTo(iconX+s(4),iconY-s(4));ctx.lineTo(iconX-s(4),iconY+s(4));ctx.stroke();
   }
+  if(wind){
+    ctx.fillStyle='rgba(10,20,40,.7)';
+    ctx.beginPath();ctx.arc(iconX,iconY,iconR+s(2),0,Math.PI*2);ctx.fill();
+    const prog=Math.max(0,Math.min(windTime/WIND_DUR,1));
+    ctx.strokeStyle='rgba(144,202,249,.2)';ctx.lineWidth=s(3);
+    ctx.beginPath();ctx.arc(iconX,iconY,iconR,0,Math.PI*2);ctx.stroke();
+    ctx.strokeStyle='#90caf9';ctx.lineWidth=s(3);ctx.shadowColor='#90caf9';ctx.shadowBlur=4;
+    ctx.beginPath();ctx.arc(iconX,iconY,iconR,-.5*Math.PI,-.5*Math.PI+prog*2*Math.PI);ctx.stroke();
+    ctx.shadowBlur=0;
+    // Іконка вітру
+    ctx.strokeStyle='#90caf9';ctx.lineWidth=s(2);
+    ctx.beginPath();ctx.moveTo(iconX-s(6),iconY-s(2));ctx.bezierCurveTo(iconX,iconY-s(8),iconX+s(7),iconY-s(4),iconX+s(6),iconY+s(1));ctx.stroke();
+    ctx.beginPath();ctx.moveTo(iconX-s(6),iconY+s(3));ctx.bezierCurveTo(iconX,iconY-s(3),iconX+s(5),iconY+s(1),iconX+s(4),iconY+s(5));ctx.stroke();
+  }
   ctx.textBaseline='alphabetic';
 }
 
@@ -398,32 +414,49 @@ function trySpawnEnemy(){
   });
 }
 
+let _enemyBirdLaser=null; // лазер ворожого птаха
+
 function updateFlyingEnemy(e){
   e.wa+=dt;
   if(e.phase==='enter'){e.x-=speed*SCALE*dt;if(e.x<=e.homeX)e.phase='hover';}
   else{e.x=e.homeX+Math.sin(e.wa*.04)*s(8);}
   e.y=e.baseY+Math.sin(e.wa*.07)*s(3);
 
-  // Дії ворожого птаха кожні 3 секунди
   if(e.phase==='hover'){
     e.actionTimer+=dt;
-    if(e.actionTimer >= 180){ // кожні 3 сек
-      e.actionTimer=0;
-      const roll=Math.random();
-      if(roll<0.3){
-        // 30% — знищує всі яблука на екрані
-        apples=apples.filter(a=>a.collected);
-        spawnT(e.x+e.w/2,e.y-s(12),'🍎❌','#ff1744');
-      } else if(roll<0.6){
-        // 30% — знищує всі бафи на екрані
-        boosters=boosters.filter(b=>b.collected);
-        spawnT(e.x+e.w/2,e.y-s(12),'🛡❌','#ff1744');
-      } else if(roll<0.8&&_upgrades.bird>0&&_birdLaser){
-        // 50% від решти — відбиває лазер птаха (якщо активний)
-        _birdLaser=null;
-        spawnT(e.x+e.w/2,e.y-s(12),'🦅💥','#ff5722');
+
+    // Їсть бафи на шляху з 50% шансом
+    for(const b of [...boosters]){
+      if(b.collected||b.good===false)continue; // не чіпає дебафи
+      const dx=Math.abs(b.x-(e.x+e.w/2));
+      const dy=Math.abs(b.y-(e.y+e.h/2));
+      if(dx<s(60)&&dy<s(80)&&Math.random()<0.5){
+        b.collected=true;
+        _enemyBirdLaser={sx:e.x+e.w/2,sy:e.y+e.h/2,tx:b.x,ty:b.y,timer:20,color:'#ffd740'};
+        spawnT(b.x,b.y-s(10),'🛡💨','#ff5722');
       }
     }
+
+    // Спавнить дебаф кожні 7 сек через лазер в підлогу
+    if(e.actionTimer >= 7*60){
+      e.actionTimer=0;
+      const debuffs=['noapple','wind'];
+      const debuff=debuffs[Math.floor(Math.random()*debuffs.length)];
+      const def=BDEFS.find(b=>b.id===debuff);
+      if(def){
+        const tx=e.x+e.w/2;
+        // Лазер в підлогу
+        _enemyBirdLaser={sx:tx,sy:e.y+e.h,tx:tx,ty:GY,timer:30,color:'#ff1744'};
+        // Спавним дебаф на місці де промінь торкається землі
+        boosters.push({...def,x:tx,y:GY-s(44),r:s(11),collected:false,anim:0});
+        spawnT(tx,GY-s(50),'⚠️','#ff1744');
+      }
+    }
+  }
+
+  if(_enemyBirdLaser){
+    _enemyBirdLaser.timer-=dt;
+    if(_enemyBirdLaser.timer<=0)_enemyBirdLaser=null;
   }
 }
 function drawFlyingEnemy(e){
@@ -439,6 +472,29 @@ function drawFlyingEnemy(e){
   if(e.hp!==undefined){
     ctx.fillStyle='#111';ctx.beginPath();ctx.roundRect(px,py-s(10),e.w,s(5),s(2));ctx.fill();
     ctx.fillStyle='#ff1744';ctx.beginPath();ctx.roundRect(px,py-s(10),e.w*(e.hp/e.maxHp),s(5),s(2));ctx.fill();
+  }
+
+  // Таймер спавну дебафів (7 сек)
+  if(e.phase==='hover'){
+    const prog=Math.min((e.actionTimer||0)/(7*60),1);
+    ctx.strokeStyle='rgba(255,23,68,.2)';ctx.lineWidth=s(2);
+    ctx.beginPath();ctx.arc(px+e.w/2,py+e.h/2,s(20),0,Math.PI*2);ctx.stroke();
+    ctx.strokeStyle='#ff1744';ctx.lineWidth=s(2);ctx.shadowColor='#ff1744';ctx.shadowBlur=4;
+    ctx.beginPath();ctx.arc(px+e.w/2,py+e.h/2,s(20),-.5*Math.PI,-.5*Math.PI+prog*2*Math.PI);ctx.stroke();
+    ctx.shadowBlur=0;
+  }
+
+  // Лазер ворожого птаха
+  if(_enemyBirdLaser&&_enemyBirdLaser.timer>0){
+    const alpha=_enemyBirdLaser.timer/30;
+    ctx.save();ctx.globalAlpha=alpha;
+    ctx.strokeStyle=_enemyBirdLaser.color;ctx.lineWidth=s(3);
+    ctx.shadowColor=_enemyBirdLaser.color;ctx.shadowBlur=12;
+    ctx.beginPath();ctx.moveTo(_enemyBirdLaser.sx,_enemyBirdLaser.sy);
+    ctx.lineTo(_enemyBirdLaser.tx,_enemyBirdLaser.ty);ctx.stroke();
+    ctx.globalAlpha=alpha*.5;ctx.fillStyle=_enemyBirdLaser.color;
+    ctx.beginPath();ctx.arc(_enemyBirdLaser.tx,_enemyBirdLaser.ty,s(6)*alpha,0,Math.PI*2);ctx.fill();
+    ctx.restore();
   }
 
   // Небезпечна зона — червона лінія від птаха до землі
@@ -510,13 +566,14 @@ function trySpawnApple(){
   if(isRed)redAppleSpawned=true;
   apples.push({x:W+s(15),y:ay,r:s(9),isRed,collected:false,anim:0});
 }
-const BDEFS=[{id:'shield',label:'🛡 ЩИТ',good:true},{id:'magnet',label:'🧲 МАГНІТ',good:true},{id:'noapple',label:'🔴 ЯБЛУКА НЕДОСТУПНІ',good:false}];
+const BDEFS=[{id:'shield',label:'🛡 ЩИТ',good:true},{id:'magnet',label:'🧲 МАГНІТ',good:true},{id:'noapple',label:'🔴 ЯБЛУКА НЕДОСТУПНІ',good:false},{id:'wind',label:'💨 ВІТЕР',good:false}];
 function trySpawnBooster(){
   if(!isSafe(W+s(15)))return;
   // Не спавнити якщо обидва бафи активні
   if(shield&&magnet){boosters=[];return;}
   // Не спавнити дебаф якщо вже є
   if(noApples){boosters=boosters.filter(b=>b.id!=='noapple');return;}
+  if(wind){boosters=boosters.filter(b=>b.id!=='wind');return;}
   // Фільтруємо доступні бустери
   const avail=BDEFS.filter(bt=>{
     if(bt.id==='shield'&&shield)return false;
@@ -538,6 +595,7 @@ function applyBooster(bt){
   if(bt.id==='shield'){if(!shield){shield=true;shieldTime=SHIELD_DUR[_upgrades.shield]||SHIELD_DUR[0];}}
   if(bt.id==='magnet'){magnet=true;magnetTime=MAGNET_DUR[_upgrades.magnet]||(60*5);}
   if(bt.id==='noapple'){noApples=true;noApplesTime=BDUR;}
+  if(bt.id==='wind'){wind=true;windTime=WIND_DUR;spawnT(P.x+s(14),P.y-s(10),'💨 ВІТЕР!','#90caf9');}
   spawnP(P.x+s(14),P.y,bt.good?'#ffd740':'#ff1744',8);
 }
 function drawBooster(b){
@@ -677,13 +735,14 @@ function gameLoop(ts){
     if(boss&&pb.x<bb.x+bb.w&&pb.x+pb.w>bb.x&&pb.y<bb.y+bb.h&&pb.y+pb.h>bb.y){if(!hitShield(null)){if(!hitPlayer())return;}}
   }
   const pb2=P.box();const pcx=pb2.x+pb2.w/2,pcy=pb2.y+PH/2;
-  const magnetRadius=s(180); // радіус магніту
+  const magnetRadius=s(200);
   for(const a of apples){
     if(a.collected)continue;
     if(magnet&&!noApples){
       const dx=pcx-a.x,dy=pcy-a.y;
       const dist=Math.sqrt(dx*dx+dy*dy)||1;
-      if(dist<magnetRadius){
+      // Тягнемо тільки яблука в радіусі попереду або збоку (не далеко позаду)
+      if(dist<magnetRadius&&a.x>P.x-s(30)){
         const pullSpeed=Math.max(dist*0.3,s(8))*dt;
         a.x+=dx/dist*pullSpeed;
         a.y+=dy/dist*pullSpeed;
@@ -736,9 +795,11 @@ function startGame(){
   score=0;lives=3;speed=START_SPEED[_upgrades.speed]||4.5;frame=0;lastTime=0;dt=1;speedMod=0;boostLabel='';inv=0;
   obstacles=[];apples=[];boosters=[];particles=[];flyingEnemies=[];bossBullets=[];speedMods=[];
   shield=false;shieldTime=0;magnet=false;magnetTime=0;noApples=false;noApplesTime=0;
+  wind=false;windTime=0;
   boss=null;bossActive=false;redAppleSpawned=false;nextSpeedMod=400;
   _bossRemainingHp=0;
   _enemyBirdHp=0;
+  _enemyBirdLaser=null;
   _sessionStart=Date.now();
   _submitDone=false;
   _birdTimer=0;
