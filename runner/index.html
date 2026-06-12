@@ -650,7 +650,7 @@ function gameLoop(ts){
   if(!lastTime)lastTime=ts;
   const el=ts-lastTime;lastTime=ts;
   dt=Math.min(el/16.667,3);frame+=dt;
-  let bs=4.5+Math.floor(score/150)*.4+speedMod;
+  let bs=START_SPEED[_upgrades.speed||0]+Math.floor(score/150)*.4+speedMod;
   if(bs<2)bs=2;if(bs>14)bs=14;speed=bs;
   score+=dt*.15;
   bgOff=(bgOff+speed*SCALE*dt*.38)%(W*4);
