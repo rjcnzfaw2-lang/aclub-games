@@ -133,7 +133,8 @@ const P={
     if(shieldTime>0){shieldTime-=dt;if(shieldTime<=0){shield=false;boostLabel='';}}
     if(magnetTime>0){magnetTime-=dt;if(magnetTime<=0){magnet=false;boostLabel='';}}
     if(noApplesTime>0){noApplesTime-=dt;if(noApplesTime<=0){noApples=false;boostLabel='';}}
-    if(windTime>0){windTime-=dt;if(windTime<=0){wind=false;}}  },
+    if(windTime>0){windTime-=dt;if(windTime<=0){wind=false;}}
+  },
   draw(){
     if(inv>0&&Math.floor(inv/4)%2===0)return;
     const px=this.x,py=Math.round(this.y);
