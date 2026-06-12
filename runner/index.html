@@ -92,7 +92,8 @@ let obstacles=[],apples=[],boosters=[],particles=[],flyingEnemies=[],bossBullets
 let bgOff=0,grOff=0;
 let shield=false,shieldTime=0,magnet=false,magnetTime=0,noApples=false,noApplesTime=0;
 let wind=false,windTime=0; // дебаф вітру — блокує подвійний стрибок
-const WIND_DUR=5*60; // 5 секунд
+const WIND_DUR=5*60;
+const BDUR=60*3; // тривалість дебафу яблук (3 сек)
 let boss=null,bossActive=false;
 let nextSpeedMod=400,nextApple=0,nextBooster=0,nextEnemy=0;
 let redAppleSpawned=false;
@@ -597,7 +598,7 @@ function applyBooster(bt){
   if(bt.id==='shield'){if(!shield){shield=true;shieldTime=SHIELD_DUR[_upgrades.shield]||SHIELD_DUR[0];}}
   if(bt.id==='magnet'){magnet=true;magnetTime=MAGNET_DUR[_upgrades.magnet]||(60*5);}
   if(bt.id==='noapple'){noApples=true;noApplesTime=BDUR;}
-  if(bt.id==='wind'){wind=true;windTime=WIND_DUR;spawnT(P.x+s(14),P.y-s(10),'💨 ВІТЕР!','#90caf9');}
+  if(bt.id==='wind'){wind=true;windTime=WIND_DUR;spawnT(P.x+s(14),P.y-s(10),'WIND!','#90caf9');}
   spawnP(P.x+s(14),P.y,bt.good?'#ffd740':'#ff1744',8);
 }
 function drawBooster(b){
@@ -757,7 +758,17 @@ function gameLoop(ts){
       else{score+=10;spawnP(a.x,a.y,'#00c853',8);spawnT(a.x,a.y-s(13),'+10','#00c853');}
     }
   }
-  for(const b of boosters){if(Math.hypot(b.x-pb.x-pb.w/2,b.y-pb.y-PH/2)<b.r+s(16)&&!b.collected){if(b.id==='shield'&&shield)continue;b.collected=true;applyBooster(b);}}
+  for(const b of boosters){
+    if(b.collected)continue;
+    if(Math.hypot(b.x-pb.x-pb.w/2,b.y-pb.y-PH/2)<b.r+s(16)){
+      if(b.id==='shield'&&shield)continue;
+      if(b.id==='magnet'&&magnet)continue;
+      if(b.id==='noapple'&&noApples)continue;
+      if(b.id==='wind'&&wind)continue;
+      b.collected=true;
+      applyBooster(b);
+    }
+  }
   for(const m of speedMods){
     if(Math.hypot(m.x-pb.x-pb.w/2,m.y-pb.y-PH/2)<m.r+s(16)&&!m.collected){
       m.collected=true;speedMod=Math.max(-2,Math.min(4,speedMod+m.delta));
