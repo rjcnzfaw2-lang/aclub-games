@@ -570,22 +570,23 @@ function trySpawnApple(){
 const BDEFS=[{id:'shield',label:'🛡 ЩИТ',good:true},{id:'magnet',label:'🧲 МАГНІТ',good:true},{id:'noapple',label:'🔴 ЯБЛУКА НЕДОСТУПНІ',good:false},{id:'wind',label:'💨 ВІТЕР',good:false}];
 function trySpawnBooster(){
   if(!isSafe(W+s(15)))return;
-  // Не спавнити якщо обидва бафи активні
-  if(shield&&magnet){boosters=[];return;}
-  // Не спавнити дебаф якщо вже є
-  if(noApples){boosters=boosters.filter(b=>b.id!=='noapple');return;}
-  if(wind){boosters=boosters.filter(b=>b.id!=='wind');return;}
+  // Якщо обидва бафи активні — нічого не спавнити
+  if(shield&&magnet){boosters=boosters.filter(b=>!b.good);return;}
   // Фільтруємо доступні бустери
   const avail=BDEFS.filter(bt=>{
     if(bt.id==='shield'&&shield)return false;
     if(bt.id==='magnet'&&magnet)return false;
+    if(bt.id==='noapple'&&noApples)return false;
+    if(bt.id==='wind'&&wind)return false;
     return true;
   });
-  if(!avail.length){boosters=[];return;}
+  if(!avail.length)return;
   // Видаляємо вже заспавнені бустери що більше не актуальні
   boosters=boosters.filter(b=>{
     if(b.id==='shield'&&shield)return false;
     if(b.id==='magnet'&&magnet)return false;
+    if(b.id==='noapple'&&noApples)return false;
+    if(b.id==='wind'&&wind)return false;
     return true;
   });
   const bt=avail[Math.floor(Math.random()*avail.length)];
