@@ -920,16 +920,29 @@ function updateBirdHelper(){
       }
       return;
     }
-    // Потім атакуємо перешкоди
+    // Потім атакуємо перешкоди — знищуємо весь кластер поруч щоб не виринала сусідня
     const target=obstacles.find(o=>o.x>P.x+s(20));
     if(target){
       const tx=target.x+target.w/2, ty=target.y+target.h/2;
       const osx2=P.x+s(60), osy2=FL-s(130);
       _birdLaser={sx:osx2,sy:osy2,tx,ty,active:true,timer:25,isBoss:false};
-      obstacles=obstacles.filter(o=>o!==target);
-      score+=5;
+      // Знаходимо весь кластер перешкод що йдуть поруч (з невеликими проміжками)
+      const cluster=[target];
+      let changed=true;
+      while(changed){
+        changed=false;
+        for(const o of obstacles){
+          if(cluster.includes(o))continue;
+          for(const c of cluster){
+            const gap=Math.min(Math.abs(o.x-(c.x+c.w)),Math.abs(c.x-(o.x+o.w)));
+            if(gap<s(60)){cluster.push(o);changed=true;break;}
+          }
+        }
+      }
+      obstacles=obstacles.filter(o=>!cluster.includes(o));
+      score+=5*cluster.length;
       spawnP(tx,ty,'#ffd740',10);
-      spawnT(tx,ty-s(16),'+5','#69f0ae');
+      spawnT(tx,ty-s(16),'+'+(5*cluster.length),'#69f0ae');
     }
   }
   if(_birdLaser&&_birdLaser.active){
