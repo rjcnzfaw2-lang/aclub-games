@@ -528,14 +528,14 @@ let _bossRemainingHp = 0; // залишок HP попереднього боса
 function getBossZone(sc){const idx=Math.floor((sc-1000)/2000);if(idx<0)return null;return{start:1000+idx*2000,end:1300+idx*2000,level:idx+1};}
 function spawnBoss(level){
   bossActive=true;bossBullets=[];obstacles=[];flyingEnemies=[];
-  let hp=level===1?100:(level===2?150:200);
+  let hp=100; // HP боса завжди 100, рівень впливає лише на бонус за вбивство
   if(_bossRemainingHp>0&&_bossRemainingHp<hp){
     hp=_bossRemainingHp;
     _bossRemainingHp=0;
   } else {
     _bossRemainingHp=0;
   }
-  boss={x:W+s(60),y:GY-s(70),w:s(60),h:s(70),hp,maxHp:hp,level,anim:0,phase:'enter',vx:-s(1.5),passed:false,shootTimer:180,pat:0};
+  boss={x:W+s(60),y:GY-s(70),w:s(60),h:s(70),hp,maxHp:hp,level,anim:0,phase:'enter',vx:-s(1.5),shootTimer:180,pat:0};
   inv=120; // 2 секунди інвулю при появі боса
   spawnP(W/2,H/2,'#ff1744',25);
 }
@@ -739,12 +739,7 @@ function gameLoop(ts){
   }
   if(boss&&inv<=0&&(boss.phase==='fight'||boss.phase==='enter')){
     const bb={x:boss.x+s(6),y:boss.y+s(8),w:boss.w-s(12),h:boss.h-s(8)};
-    if(!boss.passed&&P.y+PH<boss.y+s(20)&&pb.x+pb.w>bb.x&&pb.x<bb.x+bb.w){
-      boss.hp--;boss.passed=true;spawnP(boss.x+boss.w/2,boss.y,'#ffd740',15);spawnT(boss.x+boss.w/2,boss.y-s(22),'HIT!','#ffd740');
-      if(boss.hp<=0){score+=boss.level===1?100:(boss.level===2?250:400);spawnP(boss.x+boss.w/2,boss.y+boss.h/2,'#ffd740',30);spawnT(boss.x+boss.w/2,boss.y,'BOSS!','#ffd740');boss=null;bossActive=false;bossBullets=[];_bossRemainingHp=0;}
-      else setTimeout(()=>{if(boss)boss.passed=false;},800);
-    }
-    if(boss&&pb.x<bb.x+bb.w&&pb.x+pb.w>bb.x&&pb.y<bb.y+bb.h&&pb.y+pb.h>bb.y){if(!hitShield(null)){if(!hitPlayer())return;}}
+    if(pb.x<bb.x+bb.w&&pb.x+pb.w>bb.x&&pb.y<bb.y+bb.h&&pb.y+pb.h>bb.y){if(!hitShield(null)){if(!hitPlayer())return;}}
   }
   const pb2=P.box();const pcx=pb2.x+pb2.w/2,pcy=pb2.y+PH/2;
   const magnetRadius=s(200);
