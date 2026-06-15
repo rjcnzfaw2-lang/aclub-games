@@ -668,7 +668,7 @@ function gameLoop(ts){
     }}
   }
   if(!bossActive){
-    if(lastObsRight()<W-safeGapPx()&&frame>80)spawnGroup();
+    if(lastObsRight()<W-safeGapPx()&&frame>80&&frame>_birdClearTimer)spawnGroup();
     if(frame>nextApple){trySpawnApple();nextApple=frame+80+Math.random()*60;}
     if(frame>nextBooster&&score>60){trySpawnBooster();nextBooster=frame+300+Math.random()*120;}
     if(score>=nextSpeedMod){trySpawnSpeedMod();nextSpeedMod+=400+Math.random()*200;}
@@ -825,6 +825,7 @@ function startGame(){
   _submitDone=false;
   _birdTimer=0;
   _birdLaser=null;
+  _birdClearTimer=0;
   P.init();state='playing';gameCount++;localStorage.setItem('ag',gameCount);
   requestAnimationFrame(gameLoop);
 }
@@ -875,6 +876,7 @@ const BIRD_DAMAGE   = [0, 1, 2, 3, 4, 5]; // урон по босу
 
 let _birdTimer=0;
 let _birdAnim=0;
+let _birdClearTimer=0; // кулдаун перед спавном нової групи після знищення птахом
 let _birdLaser=null;
 
 function updateBirdHelper(){
@@ -943,6 +945,8 @@ function updateBirdHelper(){
       score+=5*cluster.length;
       spawnP(tx,ty,'#ffd740',10);
       spawnT(tx,ty-s(16),'+'+(5*cluster.length),'#69f0ae');
+      // Кулдаун перед спавном нової групи — щоб не з'являлась "поруч" на високій швидкості
+      _birdClearTimer=frame+90;
     }
   }
   if(_birdLaser&&_birdLaser.active){
