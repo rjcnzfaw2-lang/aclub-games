@@ -799,8 +799,14 @@ function gameLoop(ts){
 }
 
 document.addEventListener('keydown',e=>{if(e.code==='Space'||e.code==='ArrowUp'){e.preventDefault();if(state==='playing')P.jump();else if(state==='idle')startGame();}});
-document.addEventListener('touchstart',e=>{e.preventDefault();if(state==='playing')P.jump();else if(state==='idle')startGame();},{passive:false});
-document.addEventListener('mousedown',()=>{if(state==='playing')P.jump();else if(state==='idle')startGame();});
+document.addEventListener('touchstart',e=>{
+  if(e.target.closest('.ov')||e.target.tagName==='BUTTON'||e.target.closest('button'))return;
+  if(state==='playing'){e.preventDefault();P.jump();}
+},{passive:false});
+document.addEventListener('mousedown',e=>{
+  if(e.target.closest('.ov')||e.target.tagName==='BUTTON'||e.target.closest('button'))return;
+  if(state==='playing')P.jump();
+});
 
 function startGame(){
   document.getElementById('ovS').classList.add('hide');
