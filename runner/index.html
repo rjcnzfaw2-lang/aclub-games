@@ -752,8 +752,15 @@ function gameLoop(ts){
     if(magnet&&!noApples){
       const dx=pcx-a.x,dy=pcy-a.y;
       const dist=Math.sqrt(dx*dx+dy*dy)||1;
-      // Тягнемо тільки яблука в радіусі попереду або збоку (не далеко позаду)
-      if(dist<magnetRadius&&a.x>P.x-s(30)){
+      // Якщо яблуко опинилось позаду гравця (рідкісний випадок) — миттєво забираємо
+      if(a.x<P.x-s(30)){
+        a.collected=true;
+        if(a.isRed){score+=50;spawnP(pcx,pcy,'#ff1744',12);spawnT(pcx,pcy-s(16),'+1á','#ff1744');sendCoin();}
+        else{score+=10;spawnP(pcx,pcy,'#00c853',8);spawnT(pcx,pcy-s(13),'+10','#00c853');}
+        continue;
+      }
+      // Тягнемо яблука в радіусі попереду або збоку
+      if(dist<magnetRadius){
         const pullSpeed=Math.max(dist*0.3,s(8))*dt;
         a.x+=dx/dist*pullSpeed;
         a.y+=dy/dist*pullSpeed;
