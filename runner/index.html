@@ -403,9 +403,11 @@ function spawnGroup(){
 function lastObsRight(){if(!obstacles.length)return -9999;const o=obstacles[obstacles.length-1];return o.x+o.w;}
 
 let _enemyBirdHp = 0; // залишок HP ворожого птаха між появами
+let _nextEnemyBirdScore = 1500; // score при якому може з'явитись наступний птах
 
 function trySpawnEnemy(){
   if(score < 1500) return;
+  if(score < _nextEnemyBirdScore) return;
   const onScreen=obstacles.filter(o=>o.x>0&&o.x<W);
   if(onScreen.length>0||flyingEnemies.length>0)return;
   const ey=GY-s(58)-Math.floor(Math.random()*2)*s(18);
@@ -687,7 +689,11 @@ function gameLoop(ts){
   flyingEnemies.forEach(updateFlyingEnemy);
   // Зберігаємо HP ворожого птаха якщо вилетів за екран
   flyingEnemies=flyingEnemies.filter(e=>{
-    if(e.x<-s(80)){if(e.hp>0)_enemyBirdHp=e.hp;return false;}
+    if(e.x<-s(80)){
+      if(e.hp>0)_enemyBirdHp=e.hp;
+      _nextEnemyBirdScore=score+1000;
+      return false;
+    }
     return true;
   });
   if(boss&&boss.phase==='enter'){boss.x+=boss.vx*dt;if(boss.x<=W*.58)boss.phase='fight';}
@@ -820,6 +826,7 @@ function startGame(){
   boss=null;bossActive=false;redAppleSpawned=false;nextSpeedMod=400;
   _bossRemainingHp=0;
   _enemyBirdHp=0;
+  _nextEnemyBirdScore=1500;
   _enemyBirdLaser=null;
   _sessionStart=Date.now();
   _submitDone=false;
@@ -901,6 +908,7 @@ function updateBirdHelper(){
         _enemyBirdHp=0;
         score+=50;
         spawnT(bx2,by2-s(20),'+50!','#ffd740');
+        _nextEnemyBirdScore=score+1000;
       }
       return;
     }
