@@ -111,6 +111,10 @@ function resize(){
     W=window.Telegram.WebApp.viewportWidth||W;
   }
   cv.width=W;cv.height=H;cv.style.width=W+'px';cv.style.height=H+'px';
+  // Під час активної гри НЕ перераховуємо масштаб/фізику — інакше
+  // стрибок/швидкість "стрибають" якщо хтось змінить розмір вікна
+  // на льоту. Масштаб оновлюється лише на старті нового забігу.
+  if(state==='playing')return;
   SCALE=Math.min(W/520,H/230);
   GY=H-Math.round(44*SCALE);PH=Math.round(36*SCALE);FL=GY-PH;
 }
