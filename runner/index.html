@@ -121,6 +121,7 @@ function resize(){
 window.addEventListener('resize',resize);
 if(window.Telegram&&window.Telegram.WebApp){window.Telegram.WebApp.onEvent('viewportChanged',resize);}
 
+const GRAV=0.44; // базова гравітація (буде масштабуватись через GRAV*SCALE)
 const P={
   get x(){return Math.round(70*SCALE);},
   y:0,vy:0,onGround:true,jc:0,af:0,at:0,
@@ -129,12 +130,12 @@ const P={
     const maxJumps = wind ? 1 : 2;
     if(this.jc<maxJumps){
       const h1=90*SCALE,h2=60*SCALE;
-      this.vy=this.jc===0?-Math.sqrt(2*0.44*h1):-Math.sqrt(2*0.44*h2);
+      this.vy=this.jc===0?-Math.sqrt(2*GRAV*SCALE*h1):-Math.sqrt(2*GRAV*SCALE*h2);
       this.onGround=false;this.jc++;spawnP(this.x+s(14),this.y+PH,'#00e676',5);
     }
   },
   update(){
-    this.vy+=0.44*dt;this.y+=this.vy*dt;
+    this.vy+=GRAV*SCALE*dt;this.y+=this.vy*dt;
     if(this.y>=FL){this.y=FL;this.vy=0;this.onGround=true;this.jc=0;}
     this.at+=dt;if(this.at>=7){this.at=0;this.af=(this.af+1)%4;}
     if(inv>0)inv-=dt;
