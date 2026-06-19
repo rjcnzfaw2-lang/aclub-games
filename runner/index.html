@@ -833,6 +833,7 @@ function startGame(){
   shield=false;shieldTime=0;magnet=false;magnetTime=0;noApples=false;noApplesTime=0;
   wind=false;windTime=0;
   boss=null;bossActive=false;redAppleSpawned=false;nextSpeedMod=400;
+  nextApple=0;nextBooster=0;nextEnemy=0;
   _bossRemainingHp=0;
   _enemyBirdHp=0;
   _nextEnemyBirdScore=1500;
@@ -902,10 +903,10 @@ function updateBirdHelper(){
   _birdTimer+=dt;
   const interval=BIRD_INTERVAL[_upgrades.bird];
   if(_birdTimer>=interval){
-    _birdTimer=0;
     // Пріоритет 1: ворожий птах
     const enemyBird=flyingEnemies.find(e=>e.phase==='hover');
     if(enemyBird){
+      _birdTimer=0;
       const dmg=BIRD_DAMAGE[_upgrades.bird];
       const bx2=enemyBird.x+enemyBird.w/2, by2=enemyBird.y+enemyBird.h/2;
       const osx2=P.x+s(60), osy2=FL-s(220);
@@ -924,6 +925,7 @@ function updateBirdHelper(){
     }
     // Пріоритет 2: бос
     if(boss&&(boss.phase==='fight'||boss.phase==='enter')){
+      _birdTimer=0;
       const dmg=BIRD_DAMAGE[_upgrades.bird];
       const bx=boss.x+boss.w/2, by=boss.y+boss.h/2;
       const bsx2=P.x+s(60), bsy2=FL-s(220);
@@ -943,6 +945,7 @@ function updateBirdHelper(){
     // Потім атакуємо перешкоди — знищуємо весь кластер поруч щоб не виринала сусідня
     const target=obstacles.find(o=>o.x>P.x+s(20));
     if(target){
+      _birdTimer=0;
       const tx=target.x+target.w/2, ty=target.y+target.h/2;
       const osx2=P.x+s(60), osy2=FL-s(130);
       _birdLaser={sx:osx2,sy:osy2,tx,ty,active:true,timer:25,isBoss:false};
