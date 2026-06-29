@@ -38,11 +38,26 @@ html,body{width:100%;height:100%;background:#050d1a;overflow:hidden;touch-action
 .st{font-size:9px;color:#90a4ae;text-align:center;min-height:14px;}
 .st.ok{color:#00c853;}
 .st.err{color:#ff1744;}
+/* ── Оверлей зміни орієнтації ── */
+#ovOrient{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;
+  justify-content:center;background:rgba(4,12,26,.97);z-index:200;gap:12px;padding:20px;}
+#ovOrient.show{display:flex;}
+#ovOrient .oi{font-size:48px;animation:spin 2s linear infinite;}
+@keyframes spin{0%{transform:rotate(0deg);}100%{transform:rotate(360deg);}}
+#ovOrient p{font-family:'Press Start 2P',monospace;font-size:clamp(8px,2.5vw,11px);
+  color:#ffd740;text-align:center;line-height:1.6;}
 @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Nunito:wght@700;900&display=swap');
 </style>
 </head>
 <body>
 <canvas id="c"></canvas>
+
+<!-- ORIENTATION WARNING -->
+<div id="ovOrient">
+  <div class="oi">📱</div>
+  <p>ПОВЕРНИ ТЕЛЕФОН<br>НАЗАД!</p>
+  <button class="btn" style="max-width:200px;margin-top:8px" onclick="dismissOrient()">▶ ПРОДОВЖИТИ</button>
+</div>
 
 <!-- START OVERLAY -->
 <div class="ov" id="ovS">
@@ -94,34 +109,66 @@ let dt=1,lastTime=0,speedMod=0,boostLabel='',inv=0;
 let obstacles=[],apples=[],boosters=[],particles=[],flyingEnemies=[],bossBullets=[],speedMods=[];
 let bgOff=0,grOff=0;
 let shield=false,shieldTime=0,magnet=false,magnetTime=0,noApples=false,noApplesTime=0;
-let wind=false,windTime=0; // дебаф вітру — блокує подвійний стрибок
+let wind=false,windTime=0;
 const WIND_DUR=5*60;
-const BDUR=60*3; // тривалість дебафу яблук (3 сек)
+const BDUR=60*3;
 let boss=null,bossActive=false;
 let nextSpeedMod=400,nextApple=0,nextBooster=0,nextEnemy=0;
 let redAppleSpawned=false;
 let gameCount=parseInt(localStorage.getItem('ag')||'0');
 let W,H,GY,PH,FL,SCALE;
 
+// ── Заморожені ігрові розміри (не змінюються під час гри) ──
+let _frozenScale=null,_frozenGY=null,_frozenPH=null,_frozenFL=null;
+// ── Орієнтація при старті гри ──
+let _startOrientation='';
+let _orientWarned=false;
+
+function getOrientation(){
+  return (window.screen&&window.screen.orientation)?window.screen.orientation.type:
+         (window.innerWidth>window.innerHeight?'landscape':'portrait');
+}
+
 function resize(){
-  W=window.innerWidth||screen.width;
-  H=window.innerHeight||screen.height;
-  if(window.Telegram&&window.Telegram.WebApp&&window.Telegram.WebApp.viewportHeight>100){
-    H=window.Telegram.WebApp.viewportStableHeight||window.Telegram.WebApp.viewportHeight||H;
-    W=window.Telegram.WebApp.viewportWidth||W;
+  const newW=window.innerWidth||screen.width;
+  const newH=window.innerHeight||screen.height;
+
+  // Якщо гра активна — тільки масштабуємо canvas,
+  // фізику/координати НЕ чіпаємо
+  if(state==='playing'){
+    W=newW;H=newH;
+    cv.width=W;cv.height=H;cv.style.width=W+'px';cv.style.height=H+'px';
+    // Перевіряємо зміну орієнтації — показуємо попередження
+    const curOrient=getOrientation();
+    const isLandscape=curOrient.startsWith('landscape')||newW>newH;
+    const startLandscape=_startOrientation.startsWith('landscape')||false;
+    if(isLandscape!==startLandscape&&!_orientWarned){
+      _orientWarned=true;
+      document.getElementById('ovOrient').classList.add('show');
+    }
+    return;
   }
+
+  W=newW;H=newH;
   cv.width=W;cv.height=H;cv.style.width=W+'px';cv.style.height=H+'px';
-  // Під час активної гри НЕ перераховуємо масштаб/фізику — інакше
-  // стрибок/швидкість "стрибають" якщо хтось змінить розмір вікна
-  // на льоту. Масштаб оновлюється лише на старті нового забігу.
-  if(state==='playing')return;
   SCALE=Math.min(W/520,H/230);
   GY=H-Math.round(44*SCALE);PH=Math.round(36*SCALE);FL=GY-PH;
 }
+
+function dismissOrient(){
+  document.getElementById('ovOrient').classList.remove('show');
+  // Оновлюємо "стартову" орієнтацію щоб не спрацьовувало знову
+  _startOrientation=getOrientation();
+  _orientWarned=false;
+}
+
 window.addEventListener('resize',resize);
+window.addEventListener('orientationchange',()=>{
+  setTimeout(resize,200); // затримка — браузер оновлює розміри не одразу
+});
 if(window.Telegram&&window.Telegram.WebApp){window.Telegram.WebApp.onEvent('viewportChanged',resize);}
 
-const GRAV=0.44; // базова гравітація (буде масштабуватись через GRAV*SCALE)
+const GRAV=0.44;
 const P={
   get x(){return Math.round(70*SCALE);},
   y:0,vy:0,onGround:true,jc:0,af:0,at:0,
@@ -152,7 +199,6 @@ const P={
     ctx.beginPath();ctx.ellipse(px+s(14),GY+s(2),s(12),s(3),0,0,Math.PI*2);ctx.fill();ctx.restore();
     if(shield){ctx.save();ctx.globalAlpha=.5;ctx.strokeStyle='#00e5ff';ctx.lineWidth=s(3);
       ctx.shadowColor='#00e5ff';ctx.shadowBlur=14;ctx.beginPath();ctx.arc(px+s(14),py+PH/2,s(24),0,Math.PI*2);ctx.stroke();
-      // Таймер-дуга щита
       const maxDur=SHIELD_DUR[_upgrades.shield]||SHIELD_DUR[0];
       const prog=Math.min(shieldTime/maxDur,1);
       ctx.globalAlpha=.9;ctx.strokeStyle='#00e5ff';ctx.lineWidth=s(2);
@@ -191,8 +237,6 @@ function drawBld(b,x,al){
   else if(b.t==='m'){ctx.fillRect(x+s(8),by+s(40),s(8),b.hs-s(40));ctx.fillStyle=al>0.6?'#152840':'#2a4a6a';ctx.beginPath();ctx.moveTo(x+s(4),by+s(40));ctx.lineTo(x+s(12),by+s(15));ctx.lineTo(x+s(20),by+s(40));ctx.fill();ctx.beginPath();ctx.arc(x+s(12),by+s(12),s(5),0,Math.PI*2);ctx.fill();}
   ctx.restore();
 }
-// ── ЛОКАЦІЇ ──────────────────────────────────────────────────
-// 0=Ніч, 1=Захід, 2=Дощ, 3=Туман
 const LOCATIONS = [
   { name:'🌙 Ніч',    sky:['#050d1a','#0d2137','#1a3a5c'], ground:['#1a3a1a','#0a1a0a'], line:'#00c853', bld1:'#0a1e30', bld2:'#1e3a5f', stars:true,  rain:false, fog:false },
   { name:'🌅 Захід',  sky:['#1a0d2e','#3d1555','#6b2d6b'], ground:['#2a0f0f','#150505'], line:'#ff7043', bld1:'#1a0520', bld2:'#2d0a35', stars:false, rain:false, fog:false },
@@ -219,39 +263,32 @@ function drawBG(){
   sg.addColorStop(0,loc.sky[0]);sg.addColorStop(.6,loc.sky[1]);sg.addColorStop(1,loc.sky[2]);
   ctx.fillStyle=sg;ctx.fillRect(0,0,W,H);
 
-  // Зірки або ефекти неба
   if(loc.stars){
     ctx.fillStyle='rgba(255,255,255,.45)';
     for(let i=0;i<50;i++){const sx=((i*67+bgOff*.05)%W+W)%W,sy=(i*29)%(GY*.6),ss=(i%3)*.4+.3;ctx.beginPath();ctx.arc(sx,sy,ss,0,Math.PI*2);ctx.fill();}
   }
   if(loc.sky[0]==='#1a0d2e'){
-    // Захід — темно-фіолетове небо з червоним сонцем біля горизонту
     ctx.save();ctx.shadowColor='#ff7043';ctx.shadowBlur=30;
     const sunY=GY-s(40);
     ctx.fillStyle='#ff5722';ctx.beginPath();ctx.arc(W-s(80),sunY,s(18),0,Math.PI*2);ctx.fill();
-    // Промені
     ctx.strokeStyle='rgba(255,112,67,.3)';ctx.lineWidth=s(30);
     ctx.beginPath();ctx.moveTo(W-s(80),sunY);ctx.lineTo(W-s(80),GY);ctx.stroke();
     ctx.restore();
   } else if(loc.stars){
-    // Ніч/туман — місяць
     ctx.save();ctx.shadowColor='#fffde7';ctx.shadowBlur=20;ctx.fillStyle='#fffde7';
     ctx.beginPath();ctx.arc(W-s(55),s(28),s(16),0,Math.PI*2);ctx.fill();
     ctx.fillStyle=loc.sky[1];ctx.beginPath();ctx.arc(W-s(49),s(24),s(12),0,Math.PI*2);ctx.fill();ctx.restore();
   }
 
-  // Туман
   if(loc.fog){
     ctx.save();ctx.globalAlpha=0.15+Math.sin(bgOff*.001)*.05;
     const fg=ctx.createLinearGradient(0,GY*.3,0,GY);fg.addColorStop(0,'transparent');fg.addColorStop(1,'#9c27b0');
     ctx.fillStyle=fg;ctx.fillRect(0,GY*.3,W,GY*.7);ctx.restore();
   }
 
-  // Будівлі
   const b2=(bgOff*.28)%(W*4);for(const b of BL){const bx=((b.ox-b2)%(W*4)+W*4)%(W*4)-W*.3;if(bx>-200&&bx<W+200)drawBldLoc(b,bx,.4,loc);}
   const b1=(bgOff*.55)%(W*4);for(let i=0;i<BL.length;i+=2){const b=BL[i];const bx=((b.ox-b1)%(W*4)+W*4)%(W*4)-W*.3;if(bx>-200&&bx<W+200)drawBldLoc(b,bx,.8,loc);}
 
-  // Земля
   const gg=ctx.createLinearGradient(0,GY,0,H);gg.addColorStop(0,loc.ground[0]);gg.addColorStop(1,loc.ground[1]);
   ctx.fillStyle=gg;ctx.fillRect(0,GY,W,H-GY);
   ctx.save();ctx.strokeStyle=loc.line;ctx.lineWidth=2;ctx.shadowColor=loc.line;ctx.shadowBlur=8;
@@ -260,7 +297,6 @@ function drawBG(){
   ctx.lineWidth=1;const go=grOff%s(48);
   for(let gx=-go;gx<W;gx+=s(48)){ctx.beginPath();ctx.moveTo(gx,GY);ctx.lineTo(gx,H);ctx.stroke();}
 
-  // Дощ
   if(loc.rain){
     if(!rainDrops.length)initRain();
     ctx.save();ctx.strokeStyle='rgba(100,180,255,.5)';ctx.lineWidth=1;
@@ -272,7 +308,6 @@ function drawBG(){
     ctx.restore();
   }
 
-  // Назва локації при переході (кожні 500 очок)
   const locIdx=Math.floor(score/500)%LOCATIONS.length;
   const locBoundary=locIdx*500;
   if(score-locBoundary<3){
@@ -296,7 +331,6 @@ function drawHUD(){
   ctx.globalAlpha=1;
   ctx.fillStyle='#00e676';ctx.font=`bold ${fsp}px "Press Start 2P",monospace`;ctx.textAlign='right';
   ctx.fillText('x'+speed.toFixed(1),W-pad-12,pad+hudH/2);
-  // Іконки активних бонусів — праворуч під HUD
   let iconY = pad + hudH + s(20);
   const iconR = s(14);
   const iconX = W - pad - 12 - iconR;
@@ -304,17 +338,13 @@ function drawHUD(){
   if(shield){
     const maxDur = SHIELD_DUR[_upgrades.shield]||SHIELD_DUR[0];
     const prog = Math.min(shieldTime/maxDur, 1);
-    // Фон кола
     ctx.fillStyle='rgba(0,20,40,.7)';
     ctx.beginPath();ctx.arc(iconX,iconY,iconR+s(2),0,Math.PI*2);ctx.fill();
-    // Сіра доріжка
     ctx.strokeStyle='rgba(0,229,255,.2)';ctx.lineWidth=s(3);
     ctx.beginPath();ctx.arc(iconX,iconY,iconR,-.5*Math.PI,1.5*Math.PI);ctx.stroke();
-    // Прогрес
     ctx.strokeStyle='#00e5ff';ctx.lineWidth=s(3);ctx.shadowColor='#00e5ff';ctx.shadowBlur=6;
     ctx.beginPath();ctx.arc(iconX,iconY,iconR,-.5*Math.PI,-.5*Math.PI+prog*2*Math.PI);ctx.stroke();
     ctx.shadowBlur=0;
-    // Іконка щита намальована
     ctx.fillStyle='#00e5ff';
     ctx.beginPath();
     ctx.moveTo(iconX,iconY-s(8));
@@ -373,7 +403,6 @@ function drawHUD(){
     ctx.strokeStyle='#90caf9';ctx.lineWidth=s(3);ctx.shadowColor='#90caf9';ctx.shadowBlur=4;
     ctx.beginPath();ctx.arc(iconX,iconY,iconR,-.5*Math.PI,-.5*Math.PI+prog*2*Math.PI);ctx.stroke();
     ctx.shadowBlur=0;
-    // Іконка вітру
     ctx.strokeStyle='#90caf9';ctx.lineWidth=s(2);
     ctx.beginPath();ctx.moveTo(iconX-s(6),iconY-s(2));ctx.bezierCurveTo(iconX,iconY-s(8),iconX+s(7),iconY-s(4),iconX+s(6),iconY+s(1));ctx.stroke();
     ctx.beginPath();ctx.moveTo(iconX-s(6),iconY+s(3));ctx.bezierCurveTo(iconX,iconY-s(3),iconX+s(5),iconY+s(1),iconX+s(4),iconY+s(5));ctx.stroke();
@@ -408,8 +437,8 @@ function spawnGroup(){
 }
 function lastObsRight(){if(!obstacles.length)return -9999;const o=obstacles[obstacles.length-1];return o.x+o.w;}
 
-let _enemyBirdHp = 0; // залишок HP ворожого птаха між появами
-let _nextEnemyBirdScore = 1500; // score при якому може з'явитись наступний птах
+let _enemyBirdHp = 0;
+let _nextEnemyBirdScore = 1500;
 
 function trySpawnEnemy(){
   if(score < 1500) return;
@@ -426,7 +455,7 @@ function trySpawnEnemy(){
   });
 }
 
-let _enemyBirdLaser=null; // лазер ворожого птаха
+let _enemyBirdLaser=null;
 
 function updateFlyingEnemy(e){
   e.wa+=dt;
@@ -437,9 +466,8 @@ function updateFlyingEnemy(e){
   if(e.phase==='hover'){
     e.actionTimer+=dt;
 
-    // Їсть бафи на шляху з 50% шансом
     for(const b of [...boosters]){
-      if(b.collected||b.good===false)continue; // не чіпає дебафи
+      if(b.collected||b.good===false)continue;
       const dx=Math.abs(b.x-(e.x+e.w/2));
       const dy=Math.abs(b.y-(e.y+e.h/2));
       if(dx<s(60)&&dy<s(80)&&Math.random()<0.5){
@@ -449,7 +477,6 @@ function updateFlyingEnemy(e){
       }
     }
 
-    // Спавнить дебаф кожні 7 сек через лазер в підлогу
     if(e.actionTimer >= 7*60){
       e.actionTimer=0;
       const debuffs=['noapple','wind'];
@@ -457,9 +484,7 @@ function updateFlyingEnemy(e){
       const def=BDEFS.find(b=>b.id===debuff);
       if(def){
         const tx=e.x+e.w/2;
-        // Лазер в підлогу
         _enemyBirdLaser={sx:tx,sy:e.y+e.h,tx:tx,ty:GY,timer:30,color:'#ff1744'};
-        // Спавним дебаф на місці де промінь торкається землі
         boosters.push({...def,x:tx,y:GY-s(44),r:s(11),collected:false,anim:0});
         spawnT(tx,GY-s(50),'⚠️','#ff1744');
       }
@@ -480,13 +505,11 @@ function drawFlyingEnemy(e){
   ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(px+e.w*.34,py+e.h*.5,s(3),0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.arc(px+e.w*.66,py+e.h*.5,s(3),0,Math.PI*2);ctx.fill();
   ctx.fillStyle='#b71c1c';ctx.beginPath();ctx.arc(px+e.w*.38,py+e.h*.5,s(1.5),0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.arc(px+e.w*.62,py+e.h*.5,s(1.5),0,Math.PI*2);ctx.fill();
 
-  // HP бар
   if(e.hp!==undefined){
     ctx.fillStyle='#111';ctx.beginPath();ctx.roundRect(px,py-s(10),e.w,s(5),s(2));ctx.fill();
     ctx.fillStyle='#ff1744';ctx.beginPath();ctx.roundRect(px,py-s(10),e.w*(e.hp/e.maxHp),s(5),s(2));ctx.fill();
   }
 
-  // Таймер спавну дебафів (7 сек)
   if(e.phase==='hover'){
     const prog=Math.min((e.actionTimer||0)/(7*60),1);
     ctx.strokeStyle='rgba(255,23,68,.2)';ctx.lineWidth=s(2);
@@ -496,7 +519,6 @@ function drawFlyingEnemy(e){
     ctx.shadowBlur=0;
   }
 
-  // Лазер ворожого птаха
   if(_enemyBirdLaser&&_enemyBirdLaser.timer>0){
     const alpha=_enemyBirdLaser.timer/30;
     ctx.save();ctx.globalAlpha=alpha;
@@ -509,31 +531,28 @@ function drawFlyingEnemy(e){
     ctx.restore();
   }
 
-  // Небезпечна зона — червона лінія від птаха до землі
   if(e.phase==='hover'){
     ctx.save();
     ctx.globalAlpha=0.15+Math.sin(e.wa*.1)*.05;
     ctx.fillStyle='#ff1744';
     ctx.fillRect(px+e.w*.2,py+e.h,e.w*.6,GY-(py+e.h));
     ctx.restore();
-    // Попередження зверху
     ctx.save();ctx.globalAlpha=.85+Math.sin(e.wa*.15)*.15;
     ctx.fillStyle='#ff1744';ctx.font=`bold ${s(8)}px "Press Start 2P"`;ctx.textAlign='center';
     ctx.shadowColor='#ff1744';ctx.shadowBlur=8;
     ctx.fillText('⚠',px+e.w/2,py-s(6));ctx.restore();
-    // Стрілка вниз що попереджає
     ctx.save();ctx.strokeStyle='#ff1744';ctx.lineWidth=s(1.5);ctx.globalAlpha=0.5;
     ctx.beginPath();ctx.moveTo(px+e.w/2,py+e.h+s(4));ctx.lineTo(px+e.w/2,GY-s(4));ctx.stroke();
     ctx.restore();
   }
 }
 
-let _bossRemainingHp = 0; // залишок HP попереднього боса
+let _bossRemainingHp = 0;
 
 function getBossZone(sc){const idx=Math.floor((sc-1000)/2000);if(idx<0)return null;return{start:1000+idx*2000,end:1300+idx*2000,level:idx+1};}
 function spawnBoss(level){
   bossActive=true;bossBullets=[];obstacles=[];flyingEnemies=[];
-  let hp=100; // HP боса завжди 100, рівень впливає лише на бонус за вбивство
+  let hp=100;
   if(_bossRemainingHp>0&&_bossRemainingHp<hp){
     hp=_bossRemainingHp;
     _bossRemainingHp=0;
@@ -541,7 +560,7 @@ function spawnBoss(level){
     _bossRemainingHp=0;
   }
   boss={x:W+s(60),y:GY-s(70),w:s(60),h:s(70),hp,maxHp:hp,level,anim:0,phase:'enter',vx:-s(1.5),shootTimer:180,pat:0};
-  inv=120; // 2 секунди інвулю при появі боса
+  inv=120;
   spawnP(W/2,H/2,'#ff1744',25);
 }
 function drawBoss(){
@@ -581,9 +600,7 @@ function trySpawnApple(){
 const BDEFS=[{id:'shield',label:'🛡 ЩИТ',good:true},{id:'magnet',label:'🧲 МАГНІТ',good:true},{id:'noapple',label:'🔴 ЯБЛУКА НЕДОСТУПНІ',good:false},{id:'wind',label:'💨 ВІТЕР',good:false}];
 function trySpawnBooster(){
   if(!isSafe(W+s(15)))return;
-  // Якщо обидва бафи активні — нічого не спавнити
   if(shield&&magnet){boosters=boosters.filter(b=>!b.good);return;}
-  // Фільтруємо доступні бустери
   const avail=BDEFS.filter(bt=>{
     if(bt.id==='shield'&&shield)return false;
     if(bt.id==='magnet'&&magnet)return false;
@@ -592,7 +609,6 @@ function trySpawnBooster(){
     return true;
   });
   if(!avail.length)return;
-  // Видаляємо вже заспавнені бустери що більше не актуальні
   boosters=boosters.filter(b=>{
     if(b.id==='shield'&&shield)return false;
     if(b.id==='magnet'&&magnet)return false;
@@ -655,6 +671,12 @@ function spawnT(x,y,text,color){particles.push({x,y,color,text,vx:0,vy:-s(1.8),l
 
 function gameLoop(ts){
   if(state!=='playing')return;
+  // Якщо показаний оверлей орієнтації — зупиняємо логіку гри
+  if(document.getElementById('ovOrient').classList.contains('show')){
+    lastTime=ts; // скидаємо час щоб dt не накопичувався
+    requestAnimationFrame(gameLoop);
+    return;
+  }
   if(!lastTime)lastTime=ts;
   const el=ts-lastTime;lastTime=ts;
   dt=Math.min(el/16.667,3);frame+=dt;
@@ -671,7 +693,7 @@ function gameLoop(ts){
     const z=getBossZone(Math.floor(score)-1);
     if(z&&Math.floor(score)>z.end+50&&boss.phase==='fight'){boss.phase='flee';boss.vx=s(3);}
     if(boss.phase==='flee'){boss.x+=boss.vx*2*dt;if(boss.x>W+s(100)){
-      _bossRemainingHp=boss.hp>0?boss.hp:0; // зберігаємо залишок
+      _bossRemainingHp=boss.hp>0?boss.hp:0;
       boss=null;bossActive=false;bossBullets=[];nextEnemy=frame+300;
     }}
   }
@@ -693,7 +715,6 @@ function gameLoop(ts){
   boosters.forEach(b=>{b.x-=spd;});boosters=boosters.filter(b=>b.x>-s(30)&&!b.collected);
   speedMods.forEach(m=>{m.x-=spd;});speedMods=speedMods.filter(m=>m.x>-s(30)&&!m.collected);
   flyingEnemies.forEach(updateFlyingEnemy);
-  // Зберігаємо HP ворожого птаха якщо вилетів за екран
   flyingEnemies=flyingEnemies.filter(e=>{
     if(e.x<-s(80)){
       if(e.hp>0)_enemyBirdHp=e.hp;
@@ -753,14 +774,12 @@ function gameLoop(ts){
     if(magnet&&!noApples){
       const dx=pcx-a.x,dy=pcy-a.y;
       const dist=Math.sqrt(dx*dx+dy*dy)||1;
-      // Якщо яблуко опинилось позаду гравця (рідкісний випадок) — миттєво забираємо
       if(a.x<P.x-s(30)){
         a.collected=true;
         if(a.isRed){score+=50;spawnP(pcx,pcy,'#ff1744',12);spawnT(pcx,pcy-s(16),'+1á','#ff1744');sendCoin();}
         else{score+=10;spawnP(pcx,pcy,'#00c853',8);spawnT(pcx,pcy-s(13),'+10','#00c853');}
         continue;
       }
-      // Тягнемо яблука в радіусі попереду або збоку
       if(dist<magnetRadius){
         const pullSpeed=Math.max(dist*0.3,s(8))*dt;
         a.x+=dx/dist*pullSpeed;
@@ -815,18 +834,24 @@ function gameLoop(ts){
 document.addEventListener('keydown',e=>{if(e.code==='Space'||e.code==='ArrowUp'){e.preventDefault();if(state==='playing')P.jump();else if(state==='idle')startGame();}});
 document.addEventListener('touchstart',e=>{
   if(e.target.closest('.ov')||e.target.tagName==='BUTTON'||e.target.closest('button'))return;
+  if(e.target.closest('#ovOrient'))return;
   if(state==='playing'){e.preventDefault();P.jump();}
 },{passive:false});
 document.addEventListener('mousedown',e=>{
   if(e.target.closest('.ov')||e.target.tagName==='BUTTON'||e.target.closest('button'))return;
+  if(e.target.closest('#ovOrient'))return;
   if(state==='playing')P.jump();
 });
 
 function startGame(){
   document.getElementById('ovS').classList.add('hide');
   document.getElementById('ovE').classList.add('hide');
-  readUpgrades(); // читаємо апгрейди з URL динамічно
-  resize();initBL();
+  document.getElementById('ovOrient').classList.remove('show');
+  readUpgrades();
+  resize(); // повний resize — до старту гри
+  // Запам'ятовуємо орієнтацію на момент старту
+  _startOrientation=getOrientation();
+  _orientWarned=false;
   maxLives=LIVES_BASE[_upgrades.lives]||1;
   score=0;lives=maxLives;speed=START_SPEED[_upgrades.speed]||4.5;frame=0;lastTime=0;dt=1;speedMod=0;boostLabel='';inv=0;
   obstacles=[];apples=[];boosters=[];particles=[];flyingEnemies=[];bossBullets=[];speedMods=[];
@@ -843,6 +868,7 @@ function startGame(){
   _birdTimer=0;
   _birdLaser=null;
   _birdClearTimer=0;
+  initBL();
   P.init();state='playing';gameCount++;localStorage.setItem('ag',gameCount);
   requestAnimationFrame(gameLoop);
 }
@@ -868,7 +894,6 @@ function idleLoop(ts){
   requestAnimationFrame(idleLoop);
 }
 
-// Читаємо параметри з URL — підтримуємо і ? і # для сумісності
 function getTg(){
   const fromHash  = new URLSearchParams(window.location.hash.substring(1));
   const fromQuery = new URLSearchParams(window.location.search);
@@ -876,7 +901,6 @@ function getTg(){
   return{uid:get('tgid'),cid:get('tgchat'),mid:get('tgmsg'),iid:get('tginline'),cur:get('current_msg')};
 }
 
-// Апгрейди читаються динамічно при старті гри
 let _upgrades={bird:0,shield:0,magnet:0,speed:0,lives:0};
 function readUpgrades(){
   const fromQuery=new URLSearchParams(window.location.search);
@@ -885,16 +909,16 @@ function readUpgrades(){
   _upgrades={bird:get('bird'),shield:get('shield'),magnet:get('magnet'),speed:get('uspeed'),lives:get('ulives')};
 }
 
-const SHIELD_DUR  = [5*60, 7*60, 10*60, 15*60, 20*60, 30*60]; // індекс = рівень 0-5
+const SHIELD_DUR  = [5*60, 7*60, 10*60, 15*60, 20*60, 30*60];
 const MAGNET_DUR  = [0, 8*60, 12*60, 18*60, 25*60, 35*60];
 const START_SPEED = [4.5, 5.0, 5.5, 6.0, 7.0, 8.0];
-const LIVES_BASE  = [1, 2, 3]; // індекс = рівень апгрейду lives (0-2)
-const BIRD_INTERVAL = [0, 10*60, 9*60, 8*60, 7*60, 5*60]; // фреймів між пострілами
-const BIRD_DAMAGE   = [0, 1, 2, 3, 4, 5]; // урон по босу
+const LIVES_BASE  = [1, 2, 3];
+const BIRD_INTERVAL = [0, 10*60, 9*60, 8*60, 7*60, 5*60];
+const BIRD_DAMAGE   = [0, 1, 2, 3, 4, 5];
 
 let _birdTimer=0;
 let _birdAnim=0;
-let _birdClearTimer=0; // кулдаун перед спавном нової групи після знищення птахом
+let _birdClearTimer=0;
 let _birdLaser=null;
 
 function updateBirdHelper(){
@@ -903,7 +927,6 @@ function updateBirdHelper(){
   _birdTimer+=dt;
   const interval=BIRD_INTERVAL[_upgrades.bird];
   if(_birdTimer>=interval){
-    // Пріоритет 1: ворожий птах
     const enemyBird=flyingEnemies.find(e=>e.phase==='hover');
     if(enemyBird){
       _birdTimer=0;
@@ -923,7 +946,6 @@ function updateBirdHelper(){
       }
       return;
     }
-    // Пріоритет 2: бос
     if(boss&&(boss.phase==='fight'||boss.phase==='enter')){
       _birdTimer=0;
       const dmg=BIRD_DAMAGE[_upgrades.bird];
@@ -942,14 +964,12 @@ function updateBirdHelper(){
       }
       return;
     }
-    // Потім атакуємо перешкоди — знищуємо весь кластер поруч щоб не виринала сусідня
     const target=obstacles.find(o=>o.x>P.x+s(20));
     if(target){
       _birdTimer=0;
       const tx=target.x+target.w/2, ty=target.y+target.h/2;
       const osx2=P.x+s(60), osy2=FL-s(130);
       _birdLaser={sx:osx2,sy:osy2,tx,ty,active:true,timer:25,isBoss:false};
-      // Знаходимо весь кластер перешкод що йдуть поруч (з невеликими проміжками)
       const cluster=[target];
       let changed=true;
       while(changed){
@@ -966,7 +986,6 @@ function updateBirdHelper(){
       score+=5*cluster.length;
       spawnP(tx,ty,'#ffd740',10);
       spawnT(tx,ty-s(16),'+'+(5*cluster.length),'#69f0ae');
-      // Кулдаун перед спавном нової групи — щоб не з'являлась "поруч" на високій швидкості
       _birdClearTimer=frame+90;
     }
   }
@@ -978,75 +997,58 @@ function updateBirdHelper(){
 
 function drawBirdHelper(){
   if(_upgrades.bird<=0)return;
-  // Птах летить над персонажем, трохи правіше
   const bx=P.x+s(60)+Math.sin(_birdAnim*.04)*s(20);
   const by=FL-s(220)+Math.sin(_birdAnim*.07)*s(12);
   const flap=Math.sin(_birdAnim*.22)*s(10);
   const lvl=_upgrades.bird;
   ctx.save();
-  // Тіло
   ctx.fillStyle=lvl>=3?'#ff9800':'#ffd740';
   ctx.beginPath();ctx.ellipse(bx,by,s(14),s(9),0,0,Math.PI*2);ctx.fill();
-  // Крила
   ctx.fillStyle=lvl>=3?'#ff6d00':'#ffcc02';
   ctx.beginPath();ctx.moveTo(bx,by-s(3));ctx.quadraticCurveTo(bx-s(18),by-s(14)+flap,bx-s(22),by+s(2));ctx.quadraticCurveTo(bx-s(8),by+s(8),bx,by-s(3));ctx.fill();
   ctx.beginPath();ctx.moveTo(bx,by-s(3));ctx.quadraticCurveTo(bx+s(18),by-s(14)+flap,bx+s(22),by+s(2));ctx.quadraticCurveTo(bx+s(8),by+s(8),bx,by-s(3));ctx.fill();
-  // Очі
   ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(bx+s(5),by-s(1),s(3),0,Math.PI*2);ctx.fill();
   ctx.fillStyle='#1a237e';ctx.beginPath();ctx.arc(bx+s(6),by-s(1),s(1.5),0,Math.PI*2);ctx.fill();
-  // Дзьоб
   ctx.fillStyle='#e65100';ctx.beginPath();ctx.moveTo(bx+s(13),by);ctx.lineTo(bx+s(20),by-s(2));ctx.lineTo(bx+s(13),by+s(3));ctx.fill();
-  // Рівень
   ctx.fillStyle='#fff';ctx.font=`bold ${s(7)}px "Press Start 2P"`;ctx.textAlign='center';
   ctx.fillText('Lv'+lvl,bx,by+s(18));
-  // Таймер-дуга навколо птаха
   const prog=_birdTimer/BIRD_INTERVAL[lvl];
   ctx.strokeStyle='rgba(255,215,64,.2)';ctx.lineWidth=s(3);
   ctx.beginPath();ctx.arc(bx,by,s(22),-.5*Math.PI,1.5*Math.PI);ctx.stroke();
   ctx.strokeStyle=lvl>=3?'#ff9800':'#ffd740';ctx.lineWidth=s(3);ctx.shadowColor=ctx.strokeStyle;ctx.shadowBlur=6;
   ctx.beginPath();ctx.arc(bx,by,s(22),-.5*Math.PI,-.5*Math.PI+prog*2*Math.PI);ctx.stroke();
   ctx.restore();
-  // Лазер
   if(_birdLaser&&_birdLaser.active){
     const alpha=_birdLaser.timer/25;
     ctx.save();ctx.globalAlpha=alpha;
     ctx.strokeStyle=_birdLaser.isBoss?'#ffd740':'#ff1744';
     ctx.lineWidth=s(3);ctx.shadowColor=ctx.strokeStyle;ctx.shadowBlur=16;
     ctx.beginPath();ctx.moveTo(_birdLaser.sx,_birdLaser.sy);ctx.lineTo(_birdLaser.tx,_birdLaser.ty);ctx.stroke();
-    // Вибух в точці попадання
     ctx.globalAlpha=alpha*.6;ctx.fillStyle=ctx.strokeStyle;
     ctx.beginPath();ctx.arc(_birdLaser.tx,_birdLaser.ty,s(8)*alpha,0,Math.PI*2);ctx.fill();
     ctx.restore();
   }
 }
 
-// Час старту — 0 означає гра не запускалась
 let _sessionStart=0;
-// Лічильник спроб відправки — захист від повторних викликів
 let _submitDone=false;
 
 async function sendScore(v){
   const st=document.getElementById('sendSt');
   st.textContent='⏳ Зберігаємо...';
-
   if(_sessionStart===0){st.textContent='';return;}
   if(_submitDone){st.textContent='';return;}
   _submitDone=true;
-
-  // Читаємо параметри динамічно — на момент GAME OVER URL вже має параметри
   const{uid,cid,mid,iid,cur}=getTg();
-
   if(!uid){
     const dl='https://t.me/AGameMasterbot?start=runner_'+v;
     st.innerHTML='<a href="'+dl+'" style="color:#ffd740;font-size:8px;">👆 Зберегти результат</a>';
     st.className='st err';
     return;
   }
-
   const elapsed=Math.min(Math.floor((Date.now()-_sessionStart)/1000), 9999);
   const minRequired=Math.floor(v*0.04);
   if(elapsed < minRequired){st.textContent='';return;}
-
   if((cid&&mid)||iid){
     let q='user_id='+uid+'&score='+v+'&wt=wrk_aclub_8x92kQpL&elapsed='+elapsed;
     if(iid)q+='&inline_message_id='+encodeURIComponent(iid);
@@ -1076,9 +1078,6 @@ function sendCoin(){
   try{new Image().src=GAS+'?type=apple_coin&game=runner&userId='+uid+'&secret=aclub2026runner&_t='+Date.now();}catch(e){}
 }
 
-function handleSaveClick(e,u){e.preventDefault();const tg=window.Telegram&&window.Telegram.WebApp;if(tg&&tg.openTelegramLink){try{tg.openTelegramLink(u);return;}catch(x){}}window.location.href=u;}
-
-// ── INIT ──────────────────────────────────────────────────────
 state='idle';lastTime=0;P.y=FL||H-80;P.vy=0;P.onGround=true;P.jc=0;P.af=0;P.at=0;
 obstacles=[];apples=[];boosters=[];particles=[];flyingEnemies=[];bossBullets=[];speedMods=[];
 initBL();
