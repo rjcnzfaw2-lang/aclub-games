@@ -118,6 +118,10 @@ let redAppleSpawned=false;
 let gameCount=parseInt(localStorage.getItem('ag')||'0');
 let W,H,GY,PH,FL,SCALE;
 
+// ── Обмеження логічного ігрового поля (щоб на широких екранах ПК не було видно занадто далеко) ──
+const MAX_GAME_W=900;
+let offX=0,offY=0; // зсув для центрування (letterbox, тільки по горизонталі)
+
 // ── Заморожені ігрові розміри (не змінюються під час гри) ──
 let _frozenScale=null,_frozenGY=null,_frozenPH=null,_frozenFL=null;
 // ── Орієнтація при старті гри ──
@@ -133,11 +137,12 @@ function resize(){
   const newW=window.innerWidth||screen.width;
   const newH=window.innerHeight||screen.height;
 
-  // Якщо гра активна — тільки масштабуємо canvas,
+  // Якщо гра активна — тільки масштабуємо canvas і зсув,
   // фізику/координати НЕ чіпаємо
   if(state==='playing'){
-    W=newW;H=newH;
-    cv.width=W;cv.height=H;cv.style.width=W+'px';cv.style.height=H+'px';
+    cv.width=newW;cv.height=newH;cv.style.width=newW+'px';cv.style.height=newH+'px';
+    offX=Math.round((newW-W)/2);
+    offY=Math.round((newH-H)/2);
     // Перевіряємо зміну орієнтації — показуємо попередження
     const curOrient=getOrientation();
     const isLandscape=curOrient.startsWith('landscape')||newW>newH;
@@ -149,8 +154,15 @@ function resize(){
     return;
   }
 
-  W=newW;H=newH;
-  cv.width=W;cv.height=H;cv.style.width=W+'px';cv.style.height=H+'px';
+  // Обмежуємо логічну ігрову ширину — не даємо бачити занадто далеко на широких екранах.
+  // Висоту НЕ обмежуємо — вона завжди дорівнює реальній висоті вікна.
+  W=Math.min(newW,MAX_GAME_W);
+  H=newH;
+
+  cv.width=newW;cv.height=newH;cv.style.width=newW+'px';cv.style.height=newH+'px';
+  offX=Math.round((newW-W)/2);
+  offY=Math.round((newH-H)/2);
+
   SCALE=Math.min(W/520,H/230);
   GY=H-Math.round(44*SCALE);PH=Math.round(36*SCALE);FL=GY-PH;
 }
@@ -812,6 +824,13 @@ function gameLoop(ts){
       setTimeout(()=>{if(boostLabel.includes('ШВИ')||boostLabel.includes('ПОВІЛ'))boostLabel='';},2000);
     }
   }
+  // ── Малюємо в межах логічного ігрового поля, з центруванням (letterbox) ──
+  ctx.save();
+  ctx.fillStyle='#000';
+  ctx.fillRect(0,0,cv.width,cv.height);
+  ctx.translate(offX,offY);
+  ctx.beginPath();ctx.rect(0,0,W,H);ctx.clip();
+
   ctx.clearRect(0,0,W,H);drawBG();
   obstacles.forEach(o=>o.draw(o.x,o.y,o.w,o.h));
   apples.filter(a=>!a.collected).forEach(drawApple);
@@ -828,6 +847,7 @@ function gameLoop(ts){
     ctx.font=`bold ${s(11)}px "Press Start 2P"`;ctx.textAlign='center';
     ctx.fillText(boss.phase==='enter'?'⚠ БОС! ⚠':'⚡ СТРИБАЙ або УХИЛЯЙСЯ!',W/2,hudH2+s(30));ctx.restore();
   }
+  ctx.restore();
   requestAnimationFrame(gameLoop);
 }
 
@@ -879,18 +899,28 @@ function endGame(){
   document.getElementById('bestSc').textContent=bestScore;
   document.getElementById('sendSt').textContent='';document.getElementById('sendSt').className='st';
   document.getElementById('ovE').classList.remove('hide');
+  ctx.save();
+  ctx.fillStyle='#000';ctx.fillRect(0,0,cv.width,cv.height);
+  ctx.translate(offX,offY);
+  ctx.beginPath();ctx.rect(0,0,W,H);ctx.clip();
   ctx.clearRect(0,0,W,H);drawBG();P.draw();
   ctx.fillStyle='rgba(0,0,0,.6)';ctx.fillRect(0,0,W,H);
+  ctx.restore();
   sendScore(sc);
 }
 
 function idleLoop(ts){
   if(state!=='idle')return;
   if(!lastTime)lastTime=ts;const el=ts-lastTime;lastTime=ts;const idt=Math.min(el/16.667,3);
+  ctx.save();
+  ctx.fillStyle='#000';ctx.fillRect(0,0,cv.width,cv.height);
+  ctx.translate(offX,offY);
+  ctx.beginPath();ctx.rect(0,0,W,H);ctx.clip();
   ctx.clearRect(0,0,W,H);drawBG();
   P.at+=idt;if(P.at>=18){P.at=0;P.af=(P.af+1)%4;}P.draw();
   ctx.save();ctx.globalAlpha=.5+Math.sin(Date.now()*.003)*.4;ctx.fillStyle='#00e676';
   ctx.font=`${s(10)}px "Press Start 2P"`;ctx.textAlign='center';ctx.fillText('ТАП / ПРОБІЛ',W/2,H-s(12));ctx.restore();
+  ctx.restore();
   requestAnimationFrame(idleLoop);
 }
 
